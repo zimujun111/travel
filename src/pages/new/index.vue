@@ -1,32 +1,25 @@
 <template>
-  <view class="new">
-    <view class="title">新建页面</view>
+  <view class="index">
+    <view class="title">新建</view>
     <view class="content">
-      这是新建页面的内容
+      这是新建内容
     </view>
+    
   </view>
-  
+  <custom-tab-bar />
 </template>
 
 <script>
-export default {
-  name: 'New'
-}
+import { defineComponent } from 'vue'
+import CustomTabBar from '../../custom-tab-bar/index.vue'
+
+export default defineComponent({
+  name: 'Index',
+  components: {
+    CustomTabBar
+  }
+})
 </script>
-
 <style>
-.new {
-  padding: 20px;
-}
 
-.title {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-.content {
-  font-size: 16px;
-  color: #666;
-}
-</style> 
+</style>

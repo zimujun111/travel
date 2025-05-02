@@ -1,32 +1,23 @@
 <template>
-    <view class="my">
-      <view class="title">首页</view>
-      <view class="content">
-        这是首页
-      </view>
+  <view class="index">
+    <view class="title">首页</view>
+    <view class="content">
+      这是首页内容
     </view>
-    <TabBar></TabBar>
-    
-  </template>
-  
-  <script setup>
-  import TabBar from "../../../custom-tab-bar/index"
-  
-  </script>
-  
-  <style>
-  .my {
-    padding: 20px;
+
+   
+  </view>
+   <custom-tab-bar />
+</template>
+
+<script>
+import { defineComponent } from 'vue'
+import CustomTabBar from '../../custom-tab-bar/index.vue'
+
+export default defineComponent({
+  name: 'Index',
+  components: {
+    CustomTabBar
   }
-  
-  .title {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-  
-  .content {
-    font-size: 16px;
-    color: #666;
-  }
-  </style>
+})
+</script>

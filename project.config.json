@@ -2,7 +2,7 @@
   "miniprogramRoot": "dist/",
   "projectname": "taro-vue-demo",
   "description": "travel",
-  "appid": "touristappid",
+  "appid": "wx96a767ec73544b5f",
   "setting": {
     "urlCheck": true,
     "es6": false,
