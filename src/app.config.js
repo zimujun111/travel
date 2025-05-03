@@ -22,7 +22,7 @@ export default {
         pagePath: 'pages/index/index',
         text: '首页',
         iconPath: 'assets/images/home.png',
-        selectedIconPath: 'assets/images/home.png'
+        selectedIconPath: 'assets/images/home_active.png'
       },
  
       {
@@ -35,8 +35,8 @@ export default {
       {
         pagePath: 'pages/my/index',
         text: '我的',
-        iconPath: 'assets/images/home.png',
-        selectedIconPath: 'assets/images/home.png'
+        iconPath: 'assets/images/my.png',
+        selectedIconPath: 'assets/images/my_active.png'
       }
     ]
   }
