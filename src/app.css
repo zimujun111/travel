@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   height: 100px !important;
-  background: transparent;
+  background: #fff;
   z-index: 9999;
   width: 100%;
 }

@@ -4,6 +4,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       external: ['@nutui/icons-vue-taro', '@nutui/icons-vue-taro/dist/types/icons']
-    }
+    },
+    assetsInlineLimit: 0
   }
 });
