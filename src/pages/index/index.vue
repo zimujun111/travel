@@ -13,7 +13,7 @@
 <script>
 import { defineComponent } from 'vue'
 import CustomTabBar from '../../custom-tab-bar/index.vue'
-
+console.log(1)
 export default defineComponent({
   name: 'Index',
   components: {
