@@ -1,4 +1,3 @@
-
 export default {
   pages: [
     'pages/index/index',
@@ -11,7 +10,7 @@ export default {
     navigationBarTitleText: 'Taro Vue Demo',
     navigationBarTextStyle: 'black'
   },
-  
+
   tabBar: {
     color: '#999',
     custom: true,
@@ -25,14 +24,6 @@ export default {
         iconPath: 'assets/images/home.png',
         selectedIconPath: 'assets/images/home_active.png'
       },
- 
-      {
-        pagePath: 'pages/new/index',
-        text: '新建',
-        iconPath: 'assets/images/home.png',
-        selectedIconPath: 'assets/images/home.png'
-      },
-
       {
         pagePath: 'pages/my/index',
         text: '我的',
@@ -41,4 +32,4 @@ export default {
       }
     ]
   }
-}
+}    

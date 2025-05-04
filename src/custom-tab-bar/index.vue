@@ -1,51 +1,30 @@
 <template>
-  
+
   <view class="tab-bar-container">
     <view class="tab-bar">
-  
-      <view 
-        class="tab-item"
-        @tap="switchTab(0, tabList[0].pagePath)"
-      >
-        <image 
-          :src="currentTab === 0 ? tabList[0].selectedIconPath : tabList[0].iconPath"
-          class="tab-icon"
-        />
-        <text 
-          class="tab-text"
-          :style="{ color: currentTab === 0 ? selectedColor : color }"
-        >
+
+      <view class="tab-item" @tap="switchTab(0, tabList[0].pagePath)">
+        <image :src="currentTab === 0 ? tabList[0].selectedIconPath : tabList[0].iconPath" class="tab-icon" />
+        <text class="tab-text" :style="{ color: currentTab === 0 ? selectedColor : color }">
           首页
         </text>
       </view>
 
-      
-      <view 
-        class="tab-item center-tab"
-        @tap="switchTab(1, tabList[1].pagePath)"
-      >
+
+      <view class="tab-item center-tab" @tap="navigateToNewPage">
         <view class="tab-icon add-icon"></view>
       </view>
 
 
-      <view 
-        class="tab-item"
-        @tap="switchTab(2, tabList[2].pagePath)"
-      >
-        <image 
-          :src="currentTab === 2 ? tabList[2].selectedIconPath : tabList[2].iconPath"
-          class="tab-icon"
-        />
-        <text 
-          class="tab-text"
-          :style="{ color: currentTab === 2 ? selectedColor : color }"
-        >
+      <view class="tab-item" @tap="switchTab(2, tabList[2].pagePath)">
+        <image :src="currentTab === 2 ? tabList[2].selectedIconPath : tabList[2].iconPath" class="tab-icon" />
+        <text class="tab-text" :style="{ color: currentTab === 2 ? selectedColor : color }">
           我的
         </text>
       </view>
     </view>
   </view>
-  
+
 </template>
 
 <script>
@@ -96,11 +75,17 @@ export default {
     const switchTab = (index, url) => {
       if (currentTab.value === index) return
       currentTab.value = index
-      Taro.switchTab({ 
+      Taro.switchTab({
         url,
         success: () => {
           setSelectedTab()
         }
+      })
+    }
+
+    const navigateToNewPage = () => {
+      Taro.navigateTo({
+        url: tabList[1].pagePath
       })
     }
 
@@ -112,17 +97,16 @@ export default {
       setSelectedTab()
     })
 
-    return { 
-      currentTab, 
-      color, 
-      selectedColor, 
-      tabList, 
-      switchTab 
+    return {
+      currentTab,
+      color,
+      selectedColor,
+      tabList,
+      switchTab,
+      navigateToNewPage
     }
   }
 }
 </script>
 
-<style>
-
-</style>
+<style></style>
