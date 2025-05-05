@@ -43,7 +43,8 @@ export default defineConfig(async (merge, { command, mode }) => {
             generateScopedName: '[name]__[local]___[hash:base64:5]'
           }
         }
-      }
+      },
+      
     },
     h5: {
       publicPath: '/',

@@ -3,8 +3,8 @@
   "description": "travel",
   "setting": {
     "urlCheck": true,
-    "es6": false,
-    "enhance": false,
+    "es6": true,
+    "enhance": true,
     "compileHotReLoad": false,
     "postcss": false,
     "minified": false,
@@ -29,5 +29,5 @@
     "ignore": [],
     "include": []
   },
-  "appid": "wx028ec215caa33581"
+  "appid": "wx96a767ec73544b5f"
 }

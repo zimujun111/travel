@@ -2,7 +2,8 @@ export default {
   pages: [
     'pages/index/index',
     'pages/new/index',
-    'pages/my/index'
+    'pages/my/index',
+    'pages/search/index'
   ],
   window: {
     backgroundTextStyle: 'light',
@@ -10,12 +11,7 @@ export default {
     navigationBarTitleText: 'Taro Vue Demo',
     navigationBarTextStyle: 'black'
   },
-  lazyCodeLoading: "requiredComponents", // 开启按需注入
-  rendererOptions: {
-    skyline: {
-      defaultDisplayBlock: true,          // 一定要设置，skyline 默认flex布局，配置为 block 会更符合前端的习惯
-    }
-  },
+  
   tabBar: {
     color: '#999',
     custom: true,
