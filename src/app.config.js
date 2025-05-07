@@ -1,5 +1,6 @@
 export default {
   pages: [
+    'pages/myTravel/index',
     'pages/index/index',
     'pages/new/index',
     'pages/my/index'

@@ -49,6 +49,7 @@
     "@tarojs/shared": "4.0.12",
     "@tarojs/taro": "4.0.12",
     "pinia": "^2.0.10",
+    "taro-ui": "^3.3.0",
     "vue": "^3.2.24"
   },
   "devDependencies": {
