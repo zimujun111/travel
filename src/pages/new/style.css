@@ -1,0 +1,182 @@
+.index {
+    display: flex;
+    flex-direction: column;
+    padding: 20rpx;
+    padding-bottom: 200rpx;
+    box-sizing: border-box;
+}
+
+.scroll-view_H {
+    white-space: nowrap;
+}
+
+.scroll-view-item_H {
+    display: inline-block;
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: 10rpx;
+    margin: 5rpx;
+    position: relative;
+}
+
+.scroll-view-item_H image {
+    width: 100%;
+    height: 100%;
+    border-radius: 10rpx;
+}
+
+.add-btn {
+    background: #eaeef1;
+    position: relative;
+}
+
+.add-btn::before {
+    content: "+";
+    display: inline-block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 50rpx;
+    color: #ccc;
+}
+
+.video-cover {
+    width: 100%;
+    height: 100%;
+    border-radius: 10rpx;
+    object-fit: cover;
+}
+
+.video-wrapper {
+    position: relative;
+}
+
+.play-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 60rpx;
+    color: #ccc;
+    border-radius: 50%;
+    padding: 10rpx;
+}
+
+.video-player {
+    width: 100%;
+    height: 100%;
+    border-radius: 10rpx;
+}
+
+.delete-video-btn {
+    position: absolute;
+    bottom: 60rpx;
+    right: 40rpx;
+    background-color: #333333;
+    color: white;
+    padding: 10rpx 20rpx;
+    border-radius: 20rpx;
+    font-size: 28rpx;
+    z-index: 10000;
+}
+
+.preview-overlay,
+.video-preview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.preview-swiper {
+    width: 100%;
+    height: 100%;
+}
+
+.preview-swiper-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.preview-image {
+    width: 80%;
+    height: 80%;
+}
+
+.video-preview-player {
+    width: 80%;
+    height: 80%;
+    border-radius: 0;
+}
+
+.close-btn {
+    position: fixed;
+    top: 40rpx;
+    right: 40rpx;
+    font-size: 50rpx;
+    color: white;
+    z-index: 10000;
+}
+
+.delete-btn {
+    position: fixed;
+    bottom: 60rpx;
+    right: 40rpx;
+    background-color: #333333;
+    color: white;
+    padding: 10rpx 20rpx;
+    border-radius: 20rpx;
+    font-size: 28rpx;
+    z-index: 10000;
+}
+
+.form-item {
+    margin-bottom: 20px;
+}
+
+.title-input {
+    font-size: medium;
+}
+
+.content-textarea {
+    width: 100%;
+    height: 500rpx;
+    box-sizing: border-box;
+}
+
+.submit-wrapper {
+    position: fixed;
+    bottom: 100rpx;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.submit-btn {
+    width: 50%;
+    color: white;
+    border-radius: 45rpx;
+    background-color: #79c1e7;
+    transition: background-color 0.3s ease;
+}
+
+.submit-btn.disabled {
+    background-color: #79c1e7;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.submit-btn.active {
+    background-color: #2577e2;
+}

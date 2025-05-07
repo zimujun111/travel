@@ -1,4 +1,4 @@
 export default {
-    navigationBarTitleText: 'new',
-    usingComponents: {},
-  }
+  navigationBarTitleText: '编辑',
+  usingComponents: {},
+}
