@@ -1,5 +1,5 @@
 <template>
-    <view class="travel-item">
+    <view class="travel-item" @tap="detailsClick">
       <image :src="data.url" class="travel-item-img" mode="widthFix" />
       <view class="travel-item-box">
         <view class="travel-item-title">{{ data.title }}</view>
@@ -18,6 +18,7 @@
   </template>
   
   <script>
+  import Taro from '@tarojs/taro'
   export default {
     name: 'ItemData',
     props: {
@@ -25,10 +26,21 @@
         type: Object,
         required: true
       }
+    },
+    setup(){
+      const detailsClick = () => {
+        console.log(1)
+        Taro.navigateTo({
+          url: '/pages/detail/index'
+        })
+      }
+      return{
+        detailsClick
+      }
     }
   }
   </script>
   
   <style scoped>
-  /* 可以在这里添加组件特有样式 */
+
   </style>

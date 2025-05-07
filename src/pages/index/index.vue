@@ -1,6 +1,6 @@
 <template>
    <Navbar @height-change="handleHeightChange" />
-  <view class="travel" :style="{ marginTop: navbarFullHeight + 'px' }">
+  <view class="travel" :style="{ marginTop: navbarFullHeight + 'px' }" >
     <view class="travel-left">
       <template v-for="(item, index) in list" :key="index">
         <item-data v-if="index % 2 === 0" :data="item" />
@@ -34,10 +34,16 @@ export default {
         navbarFullHeight.value = height
         console.log(navbarFullHeight.value)
       }
+      const detailsClick = () => {
+        Taro.navigateTo({
+          url: '/pages/detail/index'
+        })
+      }
     return{
     list ,
     handleHeightChange,
-    navbarFullHeight
+    navbarFullHeight,
+    detailsClick
   }
   }
   

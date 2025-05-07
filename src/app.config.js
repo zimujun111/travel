@@ -3,7 +3,8 @@ export default {
     'pages/index/index',
     'pages/new/index',
     'pages/my/index',
-    'pages/search/index'
+    'pages/search/index',
+    'pages/detail/index'
   ],
   window: {
     backgroundTextStyle: 'light',
