@@ -4,7 +4,8 @@ export default {
     'pages/new/index',
     'pages/my/index',
     'pages/search/index',
-    'pages/detail/index'
+    'pages/detail/index',
+    'pages/loginSignin/index'
   ],
   window: {
     backgroundTextStyle: 'light',
@@ -33,6 +34,5 @@ export default {
         selectedIconPath: 'assets/images/my_active.png'
       }
     ]
-  },
-  
+  }
 }    

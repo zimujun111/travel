@@ -25,10 +25,6 @@
     </view>
   </view>
 
-  
-
-  
-
   <view class="white-box">
     <button class="row" style="width: 100%;" @tap="toedit">
       <view class="left">
@@ -39,7 +35,6 @@
     </button>
     
   </view>
-
   <view class="white-box">
     <button open-type="contact" class="row" style="width: 100%;border-bottom: none;">
       <view class="left">
@@ -53,6 +48,7 @@
       <view style="text-align: center;">V1.0</view>
     </button>
   </view>
+  <phoneLogin />
   <custom-tab-bar />
 </template>
 
@@ -62,13 +58,14 @@ import { ref, onMounted } from 'vue'
 import Taro from '@tarojs/taro'
 import { View, Button } from '@tarojs/components'
 import CustomTabBar from '../../custom-tab-bar/index.vue'
-
+import phoneLogin from '../../components/phoneLogin/index.vue'
 
 export default {
   components: {
     View,
     Button,
-    CustomTabBar
+    CustomTabBar,
+    phoneLogin
   },
   setup() {
 
@@ -97,10 +94,10 @@ export default {
     }
 
     onMounted(() => {
-      const userData = Taro.getStorageSync('userinfo') || {} // 添加默认空对象
+      const userData = Taro.getStorageSync('userinfo') || {} 
   userinfo.value = {
     ...userData,
-    openid: userData.openid || '', // 确保 openid 有默认值
+    openid: userData.openid || '', 
     openidcopy: userData.openid ? 
       userData.openid.substring(0, 3) + '****' + 
       userData.openid.substring(userData.openid.length - 5, userData.openid.length - 1) 
@@ -117,7 +114,7 @@ export default {
       detailClick,
       toedit,
       travel_num,
-    
+      phoneLogin
     }
   }
 }

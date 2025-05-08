@@ -3,7 +3,8 @@
   "projectname": "travel",
   "setting": {
     "compileHotReLoad": true,
-    "skylineRenderEnable": false
+    "skylineRenderEnable": false,
+    "urlCheck": false
   },
   "libVersion": "3.7.11",
   "condition": {

@@ -29,7 +29,7 @@
     },
     setup(){
       const detailsClick = () => {
-        console.log(1)
+  
         Taro.navigateTo({
           url: '/pages/detail/index'
         })

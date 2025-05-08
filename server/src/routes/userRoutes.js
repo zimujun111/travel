@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const axios = require('axios');
+const crypto = require('crypto');
+
+
+const APPID = 'wx898bce87bade8ff0';
+const SECRET = 'c5f54483c6da738f8c0458bfd8677d7a';
+
+
 
 // 获取所有用户
 router.get('/', async (req, res) => {
@@ -36,34 +44,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 更新用户
-router.put('/:id', async (req, res) => {
-  try {
-    const user = await User.findByPk(req.params.id);
-    if (user) {
-      await user.update(req.body);
-      res.json(user);
-    } else {
-      res.status(404).json({ message: '用户未找到' });
-    }
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
 
-// 删除用户
-router.delete('/:id', async (req, res) => {
-  try {
-    const user = await User.findByPk(req.params.id);
-    if (user) {
-      await user.destroy();
-      res.json({ message: '用户已删除' });
-    } else {
-      res.status(404).json({ message: '用户未找到' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+
+
+
+
+
 
 module.exports = router; 
