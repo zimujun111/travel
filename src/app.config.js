@@ -5,7 +5,8 @@ export default {
     'pages/my/index',
     'pages/search/index',
     'pages/detail/index',
-    'pages/loginSignin/index'
+    'pages/loginSignin/index',
+    'pages/myTravel/index'
   ],
   window: {
     backgroundTextStyle: 'light',

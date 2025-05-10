@@ -6,13 +6,17 @@
 
   <view class="head-box">
     <view class="level">
-      <image class="top-head" src="../../assets/images/no_pic.png" mode="widthFix"></image>
+      <view class="avatar-wrapper">
+        <image class="top-head" :src="avatarUrl || 'https://localhost:3000/uploads/avatars/default.png'" mode="widthFix" id="avatarImage"></image>
+        <view class="upload-badge" @tap="uploadAvatar">+</view>
+      </view>
       <view class="level head-right">
         <view class="welcome">
-          <view class="nick">{{ userinfo.nickname }}</view>
+          
           <view class="openid-wrapper">
             <view class="id-wrapper">ID</view>
-            <view class="openid">{{ userinfo.openidcopy }}</view>
+            <view class="nick" v-if="isLogin">{{ userinfo.username }}</view>
+            <view class="nick" v-else>未登录</view>
             
           </view>
         </view>
@@ -26,7 +30,7 @@
   </view>
 
   <view class="white-box">
-    <button class="row" style="width: 100%;" @tap="toedit">
+    <button class="row" style="width: 100%;" @tap="tomytravel">
       <view class="left">
         <image src="../../assets/images/travel_node.png"></image>
         <text class="text">我的游记</text>
@@ -48,7 +52,10 @@
       <view style="text-align: center;">V1.0</view>
     </button>
   </view>
-  <phoneLogin />
+  <view v-if="!isLogin">
+    <phoneLogin />
+  </view>
+  
   <custom-tab-bar />
 </template>
 
@@ -68,17 +75,16 @@ export default {
     phoneLogin
   },
   setup() {
-
+    
+    const avatarUrl = ref('')
     const barHeight = ref(30) // 顶部状态栏高度
     const navBarHeight = ref(66) // 顶部高度   
-    const page = ref(1)
-    const pagesize = ref(10)
-    const islast = ref(false)
-    const loading = ref(false)
+    
     const userinfo = ref({
       openid: '',
-      openidcopy: ''
+      
     })
+    const isLogin=ref(false)
     const travel_num=ref(0)
     const detailClick = () => {
       Taro.showToast({
@@ -87,24 +93,140 @@ export default {
       })
     }
 
-    const toedit = () => {
+    const tomytravel = () => {
       Taro.navigateTo({
-        url: '/pages/mine/edit'
+        url: '/pages/myTravel/index'
+      })
+    }
+    
+    const getUserInfo=()=>{
+      const userData = Taro.getStorageSync('userinfo') || {} 
+      if(userData.token){
+        isLogin.value = true
+      }
+      
+      userinfo.value = {
+        ...userData,
+        openid: userData.user_id || '', 
+      }
+      if (userData.avatar_url) {
+        if (userData.avatar_url.startsWith('/uploads')) {
+          avatarUrl.value = `https://localhost:3000${userData.avatar_url}`
+        } else {
+          avatarUrl.value = userData.avatar_url
+        }
+      }
+    }
+    Taro.useDidShow(() => {
+      getUserInfo()
+      
+    })
+    onMounted(() => {
+      getUserInfo()
+    })
+    const uploadAvatar = () => {
+      if (!isLogin.value) {
+        Taro.showToast({
+          title: '请先登录',
+          icon: 'none'
+        })
+        return
+      }
+
+      Taro.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempFilePaths = res.tempFilePaths
+          const filePath = tempFilePaths[0]
+          
+          Taro.showLoading({
+            title: '上传中...',
+            mask: true
+          })
+          
+          const userData = Taro.getStorageSync('userinfo')
+          Taro.uploadFile({
+            url: 'https://localhost:3000/api/users/upload/avatar',
+            filePath: filePath,
+            name: 'avatar',
+            formData: {
+              token: userData.token
+            },
+            success: (uploadRes) => {
+              Taro.hideLoading()
+              
+              try {
+                const data = JSON.parse(uploadRes.data)
+                if (data.success) {
+                  Taro.showToast({
+                    title: '头像上传成功',
+                    icon: 'success',
+                    duration: 2000
+                  })
+                  
+                  // 直接使用服务器返回的URL路径
+                  userData.avatar_url = data.url
+                  avatarUrl.value = `https://localhost:3000${data.url}`
+                  Taro.setStorageSync('userinfo', userData)
+                 
+                  userinfo.value = {
+                    ...userData,
+                    openid: userData.user_id || ''
+                  }
+
+                  // 更新头像图片的src
+                  const query = Taro.createSelectorQuery()
+                  query.select('#avatarImage')
+                    .fields({
+                      node: true,
+                      size: true
+                    })
+                    .exec((res) => {
+                      console.log('查询结果:', res)
+                      const avatarNode = res[0]?.node
+                      if (avatarNode) {
+                        console.log('找到头像元素')
+                        avatarNode.src = `https://localhost:3000${data.url}`
+                        console.log('设置后的头像地址:', avatarNode.src)
+                      } else {
+                        console.log('未找到头像元素')
+                      }
+                    })
+                } else {
+                  throw new Error(data.message || '上传失败')
+                }
+              } catch (error) {
+                Taro.showToast({
+                  title: error.message || '上传失败',
+                  icon: 'none',
+                  duration: 2000
+                })
+              }
+            },
+            fail: (error) => {
+              Taro.hideLoading()
+              Taro.showToast({
+                title: '上传失败，请重试',
+                icon: 'none',
+                duration: 2000
+              })
+              console.error('上传失败:', error)
+            }
+          })
+        },
+        fail: (error) => {
+          console.error('选择图片失败:', error)
+          Taro.showToast({
+            title: '选择图片失败',
+            icon: 'none',
+            duration: 2000
+          })
+        }
       })
     }
 
-    onMounted(() => {
-      const userData = Taro.getStorageSync('userinfo') || {} 
-  userinfo.value = {
-    ...userData,
-    openid: userData.openid || '', 
-    openidcopy: userData.openid ? 
-      userData.openid.substring(0, 3) + '****' + 
-      userData.openid.substring(userData.openid.length - 5, userData.openid.length - 1) 
-      : 'Slience'
-  }
-
-    })
 
 
     return {
@@ -112,9 +234,12 @@ export default {
       navBarHeight,
       userinfo,
       detailClick,
-      toedit,
+      tomytravel,
       travel_num,
-      phoneLogin
+      phoneLogin,
+      uploadAvatar,
+      isLogin,
+      avatarUrl
     }
   }
 }
@@ -148,10 +273,9 @@ page {
 }
  
 .top-head {
-  width: 20%;
+  width: 100%;
   border-radius: 50%;
   background-color: rgba(255,255,255,0.8);
-  /* 毛玻璃效果 */
   backdrop-filter: blur(10rpx);
   -webkit-backdrop-filter: blur(10rpx);
   border: 2rpx solid rgba(255,255,255,0.5);
@@ -161,7 +285,7 @@ page {
   transition: all 0.3s ease;
 }
 
-/* 悬浮放大效果 */
+
 .top-head:hover {
   transform: scale(1.05);
   backdrop-filter: blur(12rpx);
@@ -170,7 +294,7 @@ page {
     inset 0 0 25rpx rgba(255,255,255,0.4);
 }
 
-/* 添加小红书同款装饰线 */
+
 .top-head::before {
   content: '';
   position: absolute;
@@ -190,11 +314,7 @@ page {
     color: white;
 }
  
-.nick {
-    font-size: 32rpx;
-	font-weight: bold;
-	margin-bottom: -15rpx;
-}
+
  
 .acount {
     font-size: 22rpx;
@@ -268,7 +388,6 @@ page {
     background-color: white;
     
 }
-/* 二级菜单 */
 .tab-box {
     margin: 20rpx;
     background-color: white;
@@ -341,7 +460,7 @@ page {
     flex: 1;
     display: flex;
     align-items: center;
-	justify-content: space-between;
+	  justify-content: space-between;
 }
 .id-wrapper {
   background: linear-gradient(145deg, #feb7e9, #fe86da);
@@ -349,7 +468,6 @@ page {
   padding: 4rpx 6rpx;
   margin-right: 10rpx;
   border-radius: 50%;
-  /* 立体效果 */
   box-shadow: 
     3rpx 3rpx 5rpx rgba(0,0,0,0.2),
     -1rpx -1rpx 4rpx rgba(255,255,255,0.5),
@@ -362,7 +480,6 @@ page {
   overflow: hidden;
 }
 
-/* 添加高光点缀 */
 .id-wrapper::after {
   content: '';
   position: absolute;
@@ -374,7 +491,7 @@ page {
   border-radius: 50%;
   filter: blur(1rpx);
 }
-.openid{
+.nick{
     color: rgb(255, 255, 255);
     font-weight: 600;
     font-size: 40rpx;
@@ -432,5 +549,36 @@ page {
   text-align: right;
   font-size: 28rpx;
   color: #999;
+}
+/* 头像容器 */
+.avatar-wrapper {
+  position: relative;
+  width: 20%;
+}
+
+
+.upload-badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 40rpx;
+  height: 40rpx;
+  background: linear-gradient(135deg, #ff2442, #ff6b81);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: bold;
+  border: 2rpx solid white;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+
+.upload-badge:active {
+  transform: scale(0.9);
+  opacity: 0.8;
 }
 </style>

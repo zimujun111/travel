@@ -41,6 +41,7 @@ export default {
     setup() {
         const username = ref('')
         const password = ref('')
+        const email = ref('')
         const params = Taro.getCurrentInstance().router?.params || {}
         const isLogin = ref(params.isLogin !== 'false')
 
@@ -53,32 +54,64 @@ export default {
                 return
             }
 
+            if (!isLogin.value && !email.value) {
+                Taro.showToast({
+                    title: '请填写邮箱',
+                    icon: 'none'
+                })
+                return
+            }
+
             try {
                 const url = isLogin.value ? '/api/users/login' : '/api/users/register'
-                const res = await Taro.request({
-                    url: `http://localhost:3000${url}`,
-                    method: 'POST',
-                    data: {
+                //如果是登录则需要传入用户名和密码，如果是注册则需要传入用户名、密码和邮箱
+                const requestData = isLogin.value ? 
+                    {
                         username: username.value,
-                        password: password.value
+                        password: password.value,
+                        
+                        }
+                    : {
+                        username: username.value,
+                        password: password.value,
+                        email: email.value,
+                        }
+
+                const res = await Taro.request({
+                    url: `https://localhost:3000${url}`,
+                    method: 'POST',
+                    data: requestData,
+                    header: {
+                        'content-type': 'application/json'
                     }
                 })
+                
 
-                if (res.statusCode === 200 && res.data.success) {
+                if (res.statusCode >= 200 && res.statusCode < 300 && res.data.success) {
+                    const userData={
+                        user_name:res.data.user.user_name,
+                        avatar_url:res.data.user.avatar_url || '../../assets/images/no_pic.png',
+                        token:res.data.user.token
+                    }
+                    console.log(userData.token)
+                    Taro.setStorageSync('userinfo', userData)
                     Taro.showToast({
                         title: isLogin.value ? '登录成功' : '注册成功',
                         icon: 'success'
                     })
-                    // 保存用户信息
+                    
                     Taro.setStorageSync('userinfo', res.data.user)
-                    // 返回上一页
                     setTimeout(() => {
-                        Taro.navigateBack()
+                        Taro.switchTab({
+                            url: '/pages/my/index'
+                        })
                     }, 1500)
-                } else {
+                } 
+                else {
                     throw new Error(res.data.message || (isLogin.value ? '登录失败' : '注册失败'))
                 }
-            } catch (error) {
+            } 
+            catch (error) {
                 Taro.showToast({
                     title: error.message || '操作失败',
                     icon: 'none'
@@ -90,11 +123,13 @@ export default {
             isLogin.value = !isLogin.value
             username.value = ''
             password.value = ''
+            email.value = ''
         }
 
         return {
             username,
             password,
+            email,
             isLogin,
             handleSubmit,
             toSignin

@@ -1,14 +1,38 @@
 const express = require('express');
 const cors = require('cors');
 const { Sequelize } = require('sequelize');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 
+// 创建上传目录
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true, mode: 0o755 });
+}
+
+// 创建头像上传目录
+const avatarDir = path.join(uploadDir, 'avatars');
+if (!fs.existsSync(avatarDir)) {
+  fs.mkdirSync(avatarDir, { recursive: true, mode: 0o755 });
+}
+
 // 中间件
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// 静态文件服务
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 // 数据库连接
 const sequelize = new Sequelize(
@@ -34,6 +58,14 @@ async function testConnection() {
 
 testConnection();
 
+// 导入模型
+const User = require('./models/User');
+const UserToken = require('./models/User_token');
+
+// 设置模型关联
+User.hasMany(UserToken, { foreignKey: 'user_id' });
+UserToken.belongsTo(User, { foreignKey: 'user_id' });
+
 // 导入路由
 const userRoutes = require('./routes/userRoutes');
 
@@ -45,13 +77,26 @@ app.get('/', (req, res) => {
   res.json({ message: '欢迎使用 Taro Demo API' });
 });
 
+// HTTPS 配置
+const sslPath = path.join(__dirname, '..', 'ssl');
+const options = {
+  key: fs.readFileSync(path.join(sslPath, 'private.key')),
+  cert: fs.readFileSync(path.join(sslPath, 'certificate.crt'))
+};
+
+// 启动 HTTPS 服务器
+const PORT = process.env.PORT || 3000;
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`服务器运行在 https://localhost:${PORT}`);
+});
+
 // 错误处理中间件
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: '服务器内部错误' });
+  res.status(500).json({
+    success: false,
+    message: '服务器内部错误'
+  });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`服务器运行在端口 ${PORT}`);
-}); 
+module.exports = app; 
