@@ -1,16 +1,16 @@
 <template>
-    <view class="travel-item" @tap="detailsClick">
-      <image :src="data.url" class="travel-item-img" mode="widthFix" />
+    <view class="travel-item" @tap="detailsClick(data)">
+      <image :src=" `https://localhost:3000${data.cover_image}`" class="travel-item-img" mode="widthFix" />
       <view class="travel-item-box">
         <view class="travel-item-title">{{ data.title }}</view>
         <view class="travel-item-name">
             <view class="user-info">
-                <image :src="data.avatar" mode="aspectFill" class="travel-item-avatar" />
-            <view class="user-name">{{ data.name }}</view>
+                <image :src="`https://localhost:3000${data.User.avatar_url}`" mode="aspectFill" class="travel-item-avatar" />
+            <view class="user-name">{{ data.User.username }}</view>
             </view>
             <view class="see-container">
           <image src="../../assets/images/see.png" class="eye-icon" />
-          <view class="travel-item-see">{{ data.num }}</view>
+          <view class="travel-item-see">{{ data.view_count }}</view>
         </view>
         </view>
       </view>
@@ -28,10 +28,10 @@
       }
     },
     setup(){
-      const detailsClick = () => {
-  
+      const detailsClick = (data) => {
+       
         Taro.navigateTo({
-          url: '/pages/detail/index'
+          url: `/pages/detail/index?note_id=${data.note_id}`
         })
       }
       return{

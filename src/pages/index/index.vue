@@ -1,5 +1,5 @@
 <template>
-   <Navbar @height-change="handleHeightChange" />
+  <Navbar @height-change="handleHeightChange" />
   <view class="travel" :style="{ marginTop: navbarFullHeight + 'px' }" >
     <view class="travel-left">
       <template v-for="(item, index) in list" :key="index">
@@ -16,11 +16,13 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,computed } from 'vue'
 import ItemData from './item.vue'
-import list from './data.js'
+
 import Navbar from '../../components/navbar/index.vue'
 import CustomTabBar from '../../custom-tab-bar/index.vue'
+import Taro  from '@tarojs/taro'
+import { useTravelStore } from '../../stores/travelstores'
 
 export default {
   components: {
@@ -36,28 +38,42 @@ export default {
   },
   setup() {
     const navbarFullHeight = ref(0)
-
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+    
       const handleHeightChange = (height) => {
         navbarFullHeight.value = height
-        console.log(navbarFullHeight.value)
+        
       }
       const detailsClick = () => {
         Taro.navigateTo({
           url: '/pages/detail/index'
         })
       }
+    const travelStore = useTravelStore()
+    const list= computed(() =>travelStore.list)
+    const total = computed(() =>travelStore.total)
+    const totalPages= computed(() =>travelStore.totalPages)
+    const fetchNotes = async () => {
+      await travelStore.fetchNotes(currentPage.value, pageSize.value)
+    }
+
+    onMounted(() => {
+      fetchNotes()
+    })
     return{
     list ,
     handleHeightChange,
     navbarFullHeight,
-    detailsClick
+    detailsClick,
+    fetchNotes 
   }
   }
 }
 </script>
 
 <style>
-/* Keep all the same styles as in your original wxss */
+
 page {
   padding: 10rpx;
   box-sizing: border-box;
