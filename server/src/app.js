@@ -23,6 +23,13 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
     res.set('Access-Control-Allow-Origin', '*');
   }
 }));
+app.use('/new', express.static(path.join(__dirname, '../new'), {
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 //连接数据库
 const sequelize = new Sequelize(

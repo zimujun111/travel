@@ -23,11 +23,18 @@ import Navbar from '../../components/navbar/index.vue'
 import CustomTabBar from '../../custom-tab-bar/index.vue'
 import Taro  from '@tarojs/taro'
 import { useTravelStore } from '../../stores/travelstores'
+
 export default {
   components: {
     ItemData,
     Navbar,
     CustomTabBar
+  },
+  props: {
+    option: {
+      type: Object,
+      default: () => ({})
+    }
   },
   setup() {
     const navbarFullHeight = ref(0)
@@ -62,7 +69,6 @@ export default {
     fetchNotes 
   }
   }
-  
 }
 </script>
 

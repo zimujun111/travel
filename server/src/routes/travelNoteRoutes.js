@@ -30,7 +30,7 @@ function getVideoCover(videoPath, outputDir) {
         count: 1,             // 截取1帧
         folder: outputDir,    // 输出目录
         filename: `${filename}-cover.jpg`, // 文件名
-        size: '640x360'       // 封面尺寸
+        size: '360x640'       // 封面尺寸
       });
   });
 }
@@ -229,8 +229,8 @@ router.post('/upload-video', (req, res) => {
 
 router.post('/new',  async (req, res) => {
   try {
-    const { title, content, images = [], video = null, video_cover = null ,user_id} = req.body;
-    
+    const { title, content, images = [], video = null,user_id} = req.body;
+    let { video_cover= null } = req.body; 
     // 验证数据
     if (!title || !content) {
       return res.status(400).json({
@@ -245,9 +245,10 @@ router.post('/new',  async (req, res) => {
         message: '至少需要上传一张图片或一个视频'
       });
     }
+    const baseDir = path.join(__dirname, '../../../');
     if(!video_cover){
-      const videoPath = path.join(__dirname, '../new/video', video);
-      const coverDir = path.join(__dirname, '../new/image');
+      const videoPath = path.join(baseDir,'server', video);
+      const coverDir = path.join(baseDir, 'server/new/image');
       let coverPath = await getVideoCover(videoPath, coverDir)
       video_cover = `/new/image/${path.basename(coverPath)}`;
     }

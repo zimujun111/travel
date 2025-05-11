@@ -8,42 +8,38 @@
             :scroll-y="true" 
             style="height: 100vh;" 
             class="card-scroll-view"
-            @scrolltolower="loadMore"
             scroll-top="{{scrollTop}}"
           >
-            <view class="card-list">
-              <view class="card-item" v-for="item in listData" :key="item.id">
-                <!-- 卡片内容 -->
-                <view class="card-content">
-                  <!-- 左侧图片 -->
-                  <view class="card-image-container">
-                    <image :src="item.imageUrl" mode="aspectFill" class="card-image"></image>
+            <view class="card-list-wrapper">
+              <view class="card-list">
+                <view class="card-item" v-for="item in listData" :key="item.id">
+                  <!-- 卡片内容 -->
+                  <view class="card-content">
+                    <!-- 左侧图片 -->
+                    <view class="card-image-container">
+                      <image :src="item.imageUrl" mode="aspectFill" class="card-image"></image>
+                    </view>
+                    
+                    <!-- 右侧内容 -->
+                    <view class="card-info">
+                      <view class="card-title">{{ item.title }}</view>
+                      <view class="card-desc">{{ item.description }}</view>
+                    </view>
                   </view>
                   
-                  <!-- 右侧内容 -->
-                  <view class="card-info">
-                    <view class="card-title">{{ item.title }}</view>
-                    <view class="card-desc">{{ item.description }}</view>
+                  <!-- 底部按钮 -->
+                  <view class="card-actions">
+                    <button class="action-btn passed-btn" @tap="handlePass(item.id)">
+                      <text class="btn-text">已通过</text>
+                    </button>
+                    <button class="action-btn delete-btn" @tap="handleDelete(item.id)">
+                      <text class="btn-text">删除</text>
+                    </button>
+                    <button class="action-btn edit-btn" @tap="handleEdit(item)">
+                      <text class="btn-text">编辑</text>
+                    </button>
                   </view>
                 </view>
-                
-                <!-- 底部按钮 -->
-                <view class="card-actions">
-                  <button class="action-btn passed-btn" @click="handlePass(item.id)">
-                    <text class="btn-text">已通过</text>
-                  </button>
-                  <button class="action-btn delete-btn" @click="handleDelete(item.id)">
-                    <text class="btn-text">删除</text>
-                  </button>
-                  <button class="action-btn edit-btn" @click="handleEdit(item.id)">
-                    <text class="btn-text">编辑</text>
-                  </button>
-                </view>
-              </view>
-              
-              <!-- 加载更多指示器 -->
-              <view class="loading-indicator" v-if="isLoading">
-                <text>加载更多...</text>
               </view>
             </view>
           </scroll-view>
@@ -54,55 +50,72 @@
 </template>
 
 <script>
+import Taro from '@tarojs/taro'
+
 export default {
   name: 'ListCard',
   data() {
     return {
       // 模拟数据
       listData: [
-        {
-          id: 1,
-          title: '项目名称一',
-          description: '这是一个关于项目一的详细描述，包含了项目的主要内容和特点...',
-          imageUrl: 'https://picsum.photos/seed/item1/200/200'
-        },
-        {
-          id: 2,
-          title: '项目名称二',
-          description: '这是项目二的详细介绍，展示了该项目的核心功能和优势...',
-          imageUrl: 'https://picsum.photos/seed/item2/200/200'
-        },
-        {
-          id: 3,
-          title: '项目名称三',
-          description: '项目三是一个创新型应用，专注于解决用户的特定需求...',
-          imageUrl: 'https://picsum.photos/seed/item3/200/200'
-        },
-        {
-          id: 4,
-          title: '项目名称四',
-          description: '项目四采用了最新的技术架构，提供高效稳定的服务体验...',
-          imageUrl: 'https://picsum.photos/seed/item4/200/200'
-        },
-        {
-          id: 5,
-          title: '项目名称五',
-          description: '这是一个综合性项目，涵盖了多个领域的功能和应用场景...',
-          imageUrl: 'https://picsum.photos/seed/item5/200/200'
-        },
-        {
-          id: 6,
-          title: '项目名称六',
-          description: '项目六致力于推动行业发展，提供创新性的解决方案...',
-          imageUrl: 'https://picsum.photos/seed/item6/200/200'
-        }
+      {
+        "id": 1,
+        "title": "桂林漓江风情游",
+        "description": "沿着桂林漓江顺流而下，两岸奇峰罗列，江水清澈见底，仿佛一幅天然的水墨画卷在眼前徐徐展开。竹筏飘荡在江上，渔夫悠然自得地撑着篙，时不时还能看到岸边的水牛在吃草，那种惬意的田园风光让人沉醉不已。",
+        "imageUrl": "https://picsum.photos/seed/guilin1/200/200",
+        "author": "小王",
+        "createTime": "2025-05-01 09:30:00",
+        "status": "pending"
+    },
+    {
+        "id": 2,
+        "title": "张家界奇峰探秘行",
+        "description": "踏入张家界，就仿佛进入了一个奇幻的世界。那些高耸入云的奇峰异石，形态各异，有的像利剑直插苍穹，有的像仙女亭亭玉立，在云雾缭绕中若隐若现，每走一步都有不一样的景致，让人不禁感叹大自然的鬼斧神工。",
+        "imageUrl": "https://picsum.photos/seed/zhangjiajie1/200/200",
+        "author": "小李",
+        "createTime": "2025-04-30 14:15:00",
+        "status": "approved"
+    },
+    {
+        "id": 3,
+        "title": "三亚海滨浪漫之旅",
+        "description": "三亚的海滩简直是人间天堂呀！金色的沙滩细腻柔软，踩上去就像踩在棉花上一样。湛蓝的大海一望无际，海浪一波接着一波地涌来，在沙滩上留下一片片白色的泡沫。傍晚时分，看着夕阳慢慢沉入海平面，整个天空被染成了橙红色，美不胜收，太适合情侣来享受浪漫时光啦。",
+        "imageUrl": "https://picsum.photos/seed/sanya1/200/200",
+        "author": "小张",
+        "createTime": "2025-04-28 16:40:00",
+        "status": "rejected"
+    },
+    {
+        "id": 4,
+        "title": "杭州西湖春日漫步",
+        "description": "春日的西湖别有一番韵味，湖边垂柳依依，嫩绿的柳枝随风飘舞，仿佛是大自然垂下的绿色丝绦。桃花、杏花竞相绽放，红的像火，粉的像霞，白的像雪，与波光粼粼的湖面相互映衬。租一艘小船，划行在湖面上，感受着微风拂面，惬意极了。",
+        "imageUrl": "https://picsum.photos/seed/hangzhou1/200/200",
+        "author": "小赵",
+        "createTime": "2025-04-26 13:20:00",
+        "status": "pending"
+    },
+    {
+        "id": 5,
+        "title": "西安古城历史游",
+        "description": "漫步在西安古城的大街小巷，仿佛穿越回了古代。那古老而厚重的城墙，见证了无数的历史变迁，城墙上的每一块砖石都似乎在诉说着过去的故事。钟鼓楼庄严肃穆，站在楼上俯瞰，古城的风貌尽收眼底，古色古香的建筑鳞次栉比，让人沉浸在浓厚的历史氛围之中。",
+        "imageUrl": "https://picsum.photos/seed/xian1/200/200",
+        "author": "小孙",
+        "createTime": "2025-04-25 11:50:00",
+        "status": "approved"
+    },
+    {
+        "id": 6,
+        "title": "成都美食探索之旅",
+        "description": "成都是一座来了就不想走的美食之都呀！大街小巷遍布着各种各样的美食小吃，从麻辣鲜香的火锅，到外酥里嫩的串串，再到软糯香甜的糖油果子，每一口都让人回味无穷。而且成都的美食店氛围都特别好，充满了人间烟火气，边吃边感受这座城市的热情。",
+        "imageUrl": "https://picsum.photos/seed/chengdu1/200/200",
+        "author": "小陈",
+        "createTime": "2025-04-24 15:30:00",
+        "status": "rejected"
+    }
       ],
       
       // 滚动控制
-      scrollTop: 0,
-      isLoading: false, // 加载状态
-      hasMore: true, // 是否还有更多数据
-      page: 1 // 当前加载的页数
+      scrollTop: 0
     }
   },
   
@@ -130,46 +143,22 @@ export default {
     },
     
     // 处理编辑
-    handleEdit(id) {
-      console.log(`编辑项目: ${id}`);
-      // 这里可以添加编辑项目的逻辑
+    handleEdit(item) {
+      console.log(`编辑项目: ${item.id}`);
+      // 跳转到编辑页面，并传递当前 item 的内容
       Taro.navigateTo({
-        url: `/pages/edit?id=${id}`
-      });
-    },
-    
-    // 滚动到底部加载更多
-    loadMore() {
-      if (this.isLoading || !this.hasMore) return;
-      
-      this.isLoading = true;
-      
-      // 模拟加载更多数据
-      setTimeout(() => {
-        const newData = [
-          {
-            id: 7,
-            title: '项目名称七',
-            description: '项目七是一个跨平台应用，支持多种设备访问...',
-            imageUrl: 'https://picsum.photos/seed/item7/200/200'
-          },
-          {
-            id: 8,
-            title: '项目名称八',
-            description: '这是一个人工智能驱动的项目，提供智能推荐和预测功能...',
-            imageUrl: 'https://picsum.photos/seed/item8/200/200'
-          }
-        ];
-        
-        this.listData = [...this.listData, ...newData];
-        this.isLoading = false;
-        this.page++;
-        
-        // 如果数据不足，则认为没有更多数据
-        if (newData.length < 2) {
-          this.hasMore = false;
+        url: `/pages/new/index?item=${encodeURIComponent(JSON.stringify(item))}`,
+        success: () => {
+          console.log('跳转成功');
+        },
+        fail: (err) => {
+          console.error('跳转失败:', err);
+          Taro.showToast({
+            title: '跳转失败，请重试',
+            icon: 'none'
+          });
         }
-      }, 1500);
+      });
     },
     
     // 滚动到顶部回调
@@ -190,7 +179,6 @@ export default {
 .container {
   background-color: #f5f7fa;
   min-height: 100vh;
-  padding: 30rpx;
 }
 
 .page-section-spacing {
@@ -202,21 +190,27 @@ export default {
   width: 100%;
 }
 
+/* 卡片列表包装器 */
+.card-list-wrapper {
+  padding: 24rpx;
+}
+
 /* 卡片列表样式 */
 .card-list {
   display: flex;
   flex-direction: column;
-  gap: 30rpx;
-  padding-bottom: 100rpx; /* 底部留出空间 */
+  gap: 24rpx;
+  padding-bottom: 40rpx;
 }
 
 /* 卡片项样式 */
 .card-item {
-  background-color: #ffffff;
+  background-color: #fff;
   border-radius: 16rpx;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-item:hover {
@@ -227,26 +221,22 @@ export default {
 /* 卡片内容样式 */
 .card-content {
   display: flex;
-  padding: 30rpx;
+  padding: 24rpx;
 }
 
 .card-image-container {
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 10rpx;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 8rpx;
   overflow: hidden;
-  margin-right: 30rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.card-image:hover {
-  transform: scale(1.05);
 }
 
 .card-info {
@@ -259,78 +249,71 @@ export default {
 .card-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333333;
-  margin-bottom: 15rpx;
-  line-height: 1.3;
+  color: #222;
+  margin-bottom: 10rpx;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-desc {
-  font-size: 28rpx;
-  color: #666666;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-size: 26rpx;
+  color: #888;
+  line-height: 1.4;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 卡片操作按钮样式 */
 .card-actions {
   display: flex;
-  padding: 20rpx 30rpx;
-  border-top: 1rpx solid #f0f0f0;
+  padding: 0 24rpx 24rpx 24rpx;
+  gap: 16rpx;
+  border-top: none;
+  background: #fff;
 }
 
 .action-btn {
   flex: 1;
-  height: 80rpx;
-  line-height: 80rpx;
+  height: 60rpx;
+  line-height: 60rpx;
   text-align: center;
-  font-size: 28rpx;
+  font-size: 26rpx;
   border-radius: 8rpx;
-  margin: 0 10rpx;
+  margin: 0;
+  border: 1rpx solid #e5e7eb;
+  background: #fff;
+  color: #2563eb;
   transition: background-color 0.2s;
+  padding: 0;
+  min-width: 120rpx;
 }
 
 .passed-btn {
-  color: #10b981;
-  border: 1rpx solid #10b981;
-  background-color: #f0fdf4;
+  color: #fff;
+  background-color: #10b981;
+  border: none;
 }
 
-.passed-btn:hover {
-  background-color: #dcfce7;
-}
-
-.delete-btn {
-  color: #ef4444;
-  border: 1rpx solid #ef4444;
-  background-color: #fef2f2;
-}
-
-.delete-btn:hover {
-  background-color: #fee2e2;
-}
-
+.delete-btn,
 .edit-btn {
-  color: #3b82f6;
-  border: 1rpx solid #3b82f6;
-  background-color: #eff6ff;
-}
-
-.edit-btn:hover {
-  background-color: #dbeafe;
+  height: 60rpx;
+  line-height: 60rpx;
+  text-align: center;
+  font-size: 26rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid #ccc;
+  background: #fff;
+  color: #2563eb;
+  padding: 0;
+  min-width: 120rpx;
 }
 
 .btn-text {
   display: block;
-}
-
-/* 加载更多指示器样式 */
-.loading-indicator {
-  text-align: center;
-  padding: 40rpx 0;
-  color: #666;
-  font-size: 28rpx;
+  width: 100%;
+  height: 100%;
 }
 </style>  

@@ -11,6 +11,13 @@
     "miniprogram": {
       "list": [
         {
+          "name": "pages/myTravel/index",
+          "pathName": "pages/myTravel/index",
+          "query": "",
+          "launchMode": "default",
+          "scene": null
+        },
+        {
           "name": "pages/new/index",
           "pathName": "pages/new/index",
           "query": "",

@@ -271,13 +271,38 @@ export default defineComponent({
         }
       })
       isPublished.value = true // 标记为已发布
-      Taro.showLoading({ title: '发布中...' })
+      Taro.showLoading({ title: '保存中...' })
+      
+      // 获取路由参数判断是否为编辑模式
+      const router = Taro.getCurrentInstance()?.router
+      const isEditMode = router?.params?.item ? true : false
+      
       setTimeout(() => {
         Taro.hideLoading()
-        Taro.showToast({ title: '发布成功', icon: 'success' })
-        clearDraft()
-        Taro.redirectTo({
-          url: '/pages/myTravel/index'
+
+        Taro.showToast({ 
+          title: isEditMode ? '保存成功' : '发布成功', 
+          icon: 'success',
+          duration: 1500,
+          success: () => {
+            setTimeout(() => {
+              clearDraft()
+              Taro.navigateBack({
+                delta: 1,
+                success: () => {
+                  console.log('返回成功');
+                },
+                fail: (err) => {
+                  console.error('返回失败:', err);
+                  // 如果返回失败，尝试使用switchTab
+                  Taro.switchTab({
+                    url: '/pages/myTravel/index'
+                  });
+                }
+              });
+            }, 500);
+          }
+
         })
       }, 1000)
     }
@@ -324,10 +349,33 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      loadDraft()
-      Taro.setNavigationBarTitle({
-        title: '编辑'
-      })
+      // 解析 url 参数，填充编辑内容
+      const router = Taro.getCurrentInstance()?.router
+      if (router && router.params && router.params.item) {
+        try {
+          const item = JSON.parse(decodeURIComponent(router.params.item))
+          title.value = item.title || ''
+          content.value = item.description || ''
+          if (item.imageUrl) {
+            images.value = [item.imageUrl]
+          }
+          // 设置页面标题为编辑模式
+          Taro.setNavigationBarTitle({
+            title: '编辑游记'
+          })
+        } catch (e) {
+          console.error('解析编辑数据失败:', e)
+          Taro.showToast({
+            title: '加载数据失败',
+            icon: 'none'
+          })
+        }
+      } else {
+        loadDraft()
+        Taro.setNavigationBarTitle({
+          title: '发布游记'
+        })
+      }
     })
 
     onUnmounted(() => {
