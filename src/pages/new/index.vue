@@ -91,11 +91,12 @@ export default defineComponent({
     const showVideoPreview = ref(false)
     const previewIndex = ref(0)
     const isPublished = ref(false) // 新增状态标记是否已经发布
-
+    const userData = Taro.getStorageSync('userinfo')
+    
     const isAllRequiredFilled = () => {
       return title.value.trim() && content.value.trim()
     }
-
+    console.log(userData.user_id)
     const chooseImages = () => {
       Taro.chooseImage({
         count: 9 - images.value.length,
@@ -168,8 +169,83 @@ export default defineComponent({
         }
       })
     }
-
-    const submit = () => {
+    const upload_image_video= async () => {
+      const uploadedMedia = {
+        images: [],
+        video: null,
+        videoCover: null
+      }
+      
+      try {
+        
+        // 上传图片
+        if (images.value.length > 0) {
+          
+          const imageUploads = images.value.map(filePath => 
+            Taro.uploadFile({
+              url: 'https://localhost:3000/api/travel-notes/upload-images',
+              filePath: filePath,
+              name: 'images',
+              
+            }).catch(err => {
+              console.error('图片上传失败:', filePath, err)
+              throw err
+            })
+          )
+          
+          const imageResults = await Promise.all(imageUploads)
+          
+          uploadedMedia.images = imageResults.map(res => {
+            try {
+              return JSON.parse(res.data).data
+            } catch (parseError) {
+              console.error('解析图片上传响应失败:', res.data, parseError)
+              throw parseError
+            }
+          })
+          
+          if (uploadedMedia.images.length > 0) {
+            uploadedMedia.videoCover = uploadedMedia.images[0][0].path
+            
+          }
+        }
+        
+        // 上传视频
+        if (video.value) {
+          const videoRes = await Taro.uploadFile({
+            url: 'https://localhost:3000/api/travel-notes/upload-video',
+            filePath: video.value,
+            name: 'video',
+          }).catch(err => {
+            console.error('视频上传失败:', video.value, err)
+            throw err
+          })
+          console.log(videoRes)
+          try {
+            const videoData = JSON.parse(videoRes.data).data
+            uploadedMedia.video = videoData.path
+            
+            if (uploadedMedia.images.length === 0) {
+              uploadedMedia.videoCover = false
+            }
+          } catch (parseError) {
+            console.error('解析视频上传响应失败:', videoRes.data, parseError)
+            throw parseError
+          }
+        }
+        
+        return uploadedMedia
+      } catch (error) {
+        console.error('上传失败:', {
+          error,
+          images: images.value,
+          video: video.value,
+          videoCover: videoCover.value
+        })
+        throw error
+      }
+    }
+    const submit = async () => {
       if (!title.value.trim()) {
         return Taro.showToast({ title: '请输入标题', icon: 'none' })
       }
@@ -179,15 +255,29 @@ export default defineComponent({
       if (images.value.length === 0 && !video.value) {
         return Taro.showToast({ title: '请上传图片或视频', icon: 'none' })
       }
-
+      
+      const uploadedMedia = await upload_image_video()
+      console.log('上传的媒体文件:', uploadedMedia.images)
+      const submitRes = await Taro.request({
+        url: 'https://localhost:3000/api/travel-notes/new',
+        method: 'POST',
+        data: {
+          user_id:userData.user_id,
+          title: title.value,
+          content: content.value,
+          images: uploadedMedia.images.map(img => img[0].path),
+          video: uploadedMedia.video,
+          video_cover: uploadedMedia.videoCover
+        }
+      })
       isPublished.value = true // 标记为已发布
       Taro.showLoading({ title: '发布中...' })
       setTimeout(() => {
         Taro.hideLoading()
         Taro.showToast({ title: '发布成功', icon: 'success' })
         clearDraft()
-        Taro.switchTab({
-          url: '/pages/index/index'
+        Taro.redirectTo({
+          url: '/pages/myTravel/index'
         })
       }, 1000)
     }
@@ -267,4 +357,4 @@ export default defineComponent({
 })
 </script>
 
-<style src="./style.css"></style>    
+<style src="./style.css"></style>
