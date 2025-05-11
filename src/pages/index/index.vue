@@ -21,11 +21,18 @@ import ItemData from './item.vue'
 import list from './data.js'
 import Navbar from '../../components/navbar/index.vue'
 import CustomTabBar from '../../custom-tab-bar/index.vue'
+
 export default {
   components: {
     ItemData,
     Navbar,
     CustomTabBar
+  },
+  props: {
+    option: {
+      type: Object,
+      default: () => ({})
+    }
   },
   setup() {
     const navbarFullHeight = ref(0)
@@ -46,7 +53,6 @@ export default {
     detailsClick
   }
   }
-  
 }
 </script>
 
