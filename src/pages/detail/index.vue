@@ -1,8 +1,7 @@
 <template>
     <view class="detail-container">
-      <!-- 媒体展示区 -->
       <view class="media-container">
-        <!-- 图片/视频展示 -->
+        <!-- 轮播图 -->
         <swiper 
           class="media-swiper" 
           :autoplay="false" 
@@ -17,8 +16,9 @@
               :src="item.url" 
               mode="widthFix"
               class="media-image"
+              :style="imageStyles[index] || {}"
               @load="onImageLoad"
-              @click="previewImage(index)"
+              @tap="previewImage(index)"
             />
             <video 
               v-else
@@ -29,7 +29,7 @@
             />
           </swiper-item>
         </swiper>
-        <!-- 媒体指示器 -->
+        
         <view class="media-indicator">
           {{ currentMediaIndex + 1 }}/{{ post.media.length }}
         </view>
@@ -38,16 +38,14 @@
       <!-- 用户信息 -->
       <view class="user-section">
         <view class="user-info">
-          <image class="avatar" :src="post.user.avatar" />
+          <image class="avatar" :src="post.avatar" />
           <view class="user-meta">
-            <text class="username">{{ post.user.name }}</text>
-            <text class="fans-count">{{ post.user.fans }}粉丝</text>
+            <text class="username">{{ post.name }}</text>
+            <!-- <text class="fans-count">{{ post.user.fans }}粉丝</text> -->
           </view>
         </view>
         <button class="follow-btn">关注</button>
       </view>
-
-      <!-- 正文内容 -->
       <view class="content-section">
         <text class="title">{{ post.title }}</text>
         <text class="desc">{{ post.content }}</text>
@@ -71,7 +69,7 @@
         <text class="stat-item">{{ post.likes }}点赞</text>
         <text class="stat-item">{{ post.collects }}收藏</text>
         <text class="stat-item">{{ post.comments }}评论</text>
-        <text class="time">{{ post.time }}前发布</text>
+        <text class="time">{{ post.time }}发布</text>
       </view>
 
       <!-- bottom -->
@@ -122,60 +120,158 @@
   </template>
   
   <script>
-  import {ref} from 'vue'
+  import {onMounted, ref} from 'vue'
   import Taro , {
     useLoad,
     useShareAppMessage,
     useShareTimeline,
+    
   }from '@tarojs/taro'
-  
+  import { useTravelStore } from '../../stores/travelStores'
+  import {computed} from 'vue'
+  import { formatRelativeTime } from '../../utils/date'
   export default {
-  setup() {
-    // 响应式数据
+  setup() {    
     const currentMediaIndex = ref(0)
     const swiperHeight = ref(0)
     const isLiked = ref(false)
     const isCollected = ref(false)
     const showInput = ref(false)
     const commentText = ref('')
+    const imageStyles = ref([]);
     const post = ref({
-      id: 1,
-      title: '周末探店 | 藏在胡同里的宝藏咖啡厅',
-      content: '偶然发现这家超有氛围感的咖啡店，工业风装修搭配复古家具，招牌脏脏咖啡口感层次丰富，甜品也不会太甜腻，拍照超级出片！',
-      media: [
-        { type: 'image', url: '../../assets/images/home.png' },
-        { type: 'image', url: '../../assets/images/home.png' },
-        { type: 'video', url: '../../assets/images/home.png', poster: '../../assets/images/home.png' }
-      ],
-      user: {
-        name: '咖啡探索家',
-        avatar: '../../assets/images/home.png',
-        fans: '1.2万'
-      },
-      tags: ['咖啡探店', '北京美食', '周末去哪儿'],
-      location: '北京·胡同咖啡',
-      likes: 2453,
-      comments: 328,
-      collects: 512,
-      time: '2小时'
-    })
-
-    // 方法
-    const onImageLoad = (e) => {
-      const { width, height } = e.detail
-      const systemInfo = Taro.getSystemInfoSync()
-      const screenWidth = systemInfo.windowWidth
-      swiperHeight.value = (height * screenWidth) / width
+      media: [], // 确保初始化为数组
+      title: '',
+      content: '',
+      avatar: '',
+      name: '',
+      // 其他字段...
+    });
+    const firstImageHeight = ref(0)
+    const travelStore = useTravelStore()
+    const list =  computed(() => travelStore.list)
+    const fetchNotes = async () => {
+      await travelStore.fetchNotes(currentPage.value, pageSize.value)
     }
+    
+    
+    
+    const fetchNoteImages = async (noteId) => {
+      try {
+        const response = await Taro.request({
+          url: `https://localhost:3000/api/travel-notes/getNoteImages/${noteId}`,
+          method: 'GET',
+        });
+        console.log(response.data)
+        if (response.data.success) {
+          return response.data.data.imageInfo.avatar || []; // 返回媒体数组
+        }
+        return [];
+      } catch (error) {
+        console.error('获取游记图片失败:', error);
+        return [];
+      }
+    }
+   
+
+    onMounted(async () => {
+      const note_id = Taro.getCurrentInstance().router.params.note_id;
+      
+      
+      const found = list.value.find(item => item.note_id == note_id);
+      
+      if (found) {
+        
+        const media = await fetchNoteImages(note_id);
+        let media_url = [];
+        for(let i = 0; i < media.length; i++){
+          media_url.push({
+            type: 'image',
+            url: `https://localhost:3000${media[i].url}`
+          });
+        }
+        // 3. 合并数据
+        post.value = {        
+          title: found.title,
+          content: found.content,
+          media: media.length > 0 ? media_url : [{
+            type: 'image',
+            url: `https://localhost:3000${found.User.avatar_url}`
+          }],
+          avatar: `https://localhost:3000${found.User?.avatar_url}`,
+          name: found.User?.username,
+          location: found.location,
+          likes: found.like_count,
+          collects: 100,
+          comments: found.comment_count,
+          time: formatRelativeTime(found.created_at),
+          
+        };
+        console.log(post.value)
+      }
+    });
+    
+    const onImageLoad = (e) => {
+      const { width, height } = e.detail;
+      const systemInfo = Taro.getSystemInfoSync();
+      const screenWidth = systemInfo.windowWidth;
+      const currentImageHeight = (height * screenWidth) / width;
+      
+      // 第一张图片：设置基准高度
+      if (currentMediaIndex.value === 0 && firstImageHeight.value === 0) {
+        firstImageHeight.value = currentImageHeight;
+        swiperHeight.value = currentImageHeight;
+      }
+      console.log(currentMediaIndex.value)
+      // 非第一张图片且高度超过基准：计算缩放比例
+      if (currentMediaIndex.value > 0 && currentImageHeight > firstImageHeight.value) {
+        const scaleRatio = firstImageHeight.value / currentImageHeight;
+        imageStyles.value[currentMediaIndex.value] = {
+          transform: `scale(${scaleRatio})`,
+          transformOrigin: 'top center',
+        };
+        
+      }
+      console.log(imageStyles.value)
+    };
 
     const handleSwiperChange = (e) => {
-      currentMediaIndex.value = e.detail.current
-    }
+      console.log(e)
+      const newIndex = e.detail.current;
+      currentMediaIndex.value = newIndex;
+      // 重置所有非当前页的图片样式（可选）
+      const { width, height } = e.detail;
+      const systemInfo = Taro.getSystemInfoSync();
+      const screenWidth = systemInfo.windowWidth;
+      const currentImageHeight = (height * screenWidth) / width;
+      
+      // 第一张图片：设置基准高度
+      if (currentMediaIndex.value === 0 && firstImageHeight.value === 0) {
+        firstImageHeight.value = currentImageHeight;
+        swiperHeight.value = currentImageHeight;
+      }
+      console.log(currentMediaIndex.value)
+      // 非第一张图片且高度超过基准：计算缩放比例
+      if (currentMediaIndex.value > 0 && currentImageHeight > firstImageHeight.value) {
+        const scaleRatio = firstImageHeight.value / currentImageHeight;
+        imageStyles.value[currentMediaIndex.value] = {
+          transform: `scale(${scaleRatio})`,
+          transformOrigin: 'top center',
+        };
+        
+      }
+      console.log(imageStyles.value)
+      
+    };
+    console.log(currentMediaIndex.value)
 
     const previewImage = (index) => {
+      const imageUrls = post.value.media
+        .filter(m => m.type === 'image')
+        .map(m => m.url)
       Taro.previewImage({
-        current: post.value.media[index].url,
-        urls: post.value.media.filter(m => m.type === 'image').map(m => m.url)
+        current: imageUrls[index],
+        urls: imageUrls
       })
     }
 
@@ -245,7 +341,9 @@
       showComment,
       focusCommentInput,
       sendComment,
-      handleShare
+      handleShare,
+      firstImageHeight,
+      imageStyles
     }
   }
 }
@@ -258,19 +356,23 @@
     padding-bottom: 100px;
   }
 
-  .media-container {
-    position: relative;
-    width: 100%;
-    background: #fff;
-  }
-
   .media-swiper {
-    width: 100%;
-  }
+  width: 100%;
+  overflow: hidden; /* 确保缩放图片不会溢出 */
+}
 
-  .media-image {
-    width: 100%;
-  }
+.media-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.3s ease; /* 添加平滑过渡效果 */
+}
+
+.media-container {
+  position: relative;
+  width: 100%;
+  background: #fff;
+}
 
   .media-video {
     width: 100%;
