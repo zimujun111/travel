@@ -1,8 +1,9 @@
 <template>
     <view class="detail-container">
       <view class="media-container">
-        <!-- 轮播图 -->
+        <!-- 图片轮播 -->
         <swiper 
+          v-if="post.media.filter(m => m.type === 'image').length > 0"
           class="media-swiper" 
           :autoplay="false" 
           :circular="true"
@@ -10,9 +11,8 @@
           @change="handleSwiperChange"
           :style="{ height: swiperHeight + 'px' }"
         >
-          <swiper-item v-for="(item, index) in post.media" :key="index">
+          <swiper-item v-for="(item, index) in post.media.filter(m => m.type === 'image')" :key="index">
             <image 
-              v-if="item.type === 'image'" 
               :src="item.url" 
               mode="widthFix"
               class="media-image"
@@ -20,18 +20,44 @@
               @load="onImageLoad"
               @tap="previewImage(index)"
             />
-            <video 
-              v-else
-              :src="item.url"
-              controls
-              class="media-video"
-              :poster="item.poster"
-            />
           </swiper-item>
         </swiper>
         
-        <view class="media-indicator">
-          {{ currentMediaIndex + 1 }}/{{ post.media.length }}
+        <!-- 调试信息 -->
+        <!-- <view class="debug-info" v-if="showDebug">
+          <text>视频数量: {{ post.media.filter(m => m.type === 'video').length }}</text>
+          <text v-for="(item, index) in post.media.filter(m => m.type === 'video')" :key="'debug-'+index">
+            视频 {{index + 1}}: {{item.url}}
+          </text>
+        </view> -->
+
+        <!-- 视频列表 -->
+        <view v-for="(item, index) in post.media.filter(m => m.type === 'video')" :key="'video-'+index" class="video-wrapper">
+          <video 
+            :src="item.url"
+            :poster="item.poster"
+            :autoplay="true"
+            :loop="true"
+            :muted="true"
+            :controls="true"
+            :show-center-play-btn="true"
+            :enable-progress-gesture="true"
+            :show-fullscreen-btn="true"
+            :show-play-btn="true"
+            :show-progress="true"
+            :object-fit="'cover'"
+            class="fullscreen-video"
+            @error="(e) => handleVideoError(e, item.url)"
+            @play="() => console.log('视频开始播放:', item.url)"
+            @pause="() => console.log('视频暂停:', item.url)"
+            @ended="() => console.log('视频播放结束:', item.url)"
+            @waiting="() => console.log('视频缓冲中:', item.url)"
+            @timeupdate="() => console.log('视频播放进度更新:', item.url)"
+          />
+        </view>
+
+        <view v-if="post.media.filter(m => m.type === 'image').length > 0" class="media-indicator">
+          {{ currentMediaIndex + 1 }}/{{ post.media.filter(m => m.type === 'image').length }}
         </view>
       </view>
 
@@ -173,31 +199,44 @@
       }
     }
    
+    const showDebug = ref(true) // 开启调试信息显示
 
     onMounted(async () => {
       const note_id = Taro.getCurrentInstance().router.params.note_id;
-      
+      console.log('当前笔记ID:', note_id);
       
       const found = list.value.find(item => item.note_id == note_id);
+      console.log('找到的笔记数据:', found);
       
       if (found) {
-        
         const media = await fetchNoteImages(note_id);
+        console.log('获取到的媒体数据:', media);
+        
         let media_url = [];
         for(let i = 0; i < media.length; i++){
-          media_url.push({
-            type: 'image',
-            url: `https://localhost:3000${media[i].url}`
-          });
+          const url = media[i].url;
+          console.log('处理媒体项:', url);
+          
+          // 检查是否为视频
+          const isVideo = url.toLowerCase().includes('/video/') || 
+                         url.toLowerCase().endsWith('.mp4') || 
+                         url.toLowerCase().endsWith('.mov');
+          
+          console.log('是否为视频:', isVideo, 'URL:', url);
+          
+          const mediaItem = {
+            type: isVideo ? 'video' : 'image',
+            url: `https://localhost:3000${url}`,
+            poster: isVideo ? `https://localhost:3000${found.cover_image || ''}` : ''
+          };
+          console.log('处理后的媒体项:', mediaItem);
+          media_url.push(mediaItem);
         }
-        // 3. 合并数据
+        
         post.value = {        
           title: found.title,
           content: found.content,
-          media: media.length > 0 ? media_url : [{
-            type: 'image',
-            url: `https://localhost:3000${found.User.avatar_url}`
-          }],
+          media: media_url,
           avatar: `https://localhost:3000${found.User?.avatar_url}`,
           name: found.User?.username,
           location: found.location,
@@ -205,9 +244,8 @@
           collects: 100,
           comments: found.comment_count,
           time: formatRelativeTime(found.created_at),
-          
         };
-        console.log(post.value)
+        console.log('最终处理后的post数据:', post.value);
       }
     });
     
@@ -324,6 +362,42 @@
             console.error('分享错误:', error)
         }
     }
+
+    const handleVideoError = (e, url) => {
+      console.error('视频加载错误:', e, 'URL:', url);
+      Taro.showToast({
+        title: '视频加载失败',
+        icon: 'none',
+        duration: 2000
+      });
+    };
+
+    const previewVideo = (url) => {
+      console.log('尝试预览视频:', url);
+      Taro.showModal({
+        title: '视频预览',
+        content: '是否尝试使用系统播放器打开视频？',
+        success: (res) => {
+          if (res.confirm) {
+            // 尝试使用系统播放器打开
+            Taro.downloadFile({
+              url: url,
+              success: (res) => {
+                if (res.statusCode === 200) {
+                  Taro.openDocument({
+                    filePath: res.tempFilePath,
+                    showMenu: true,
+                    success: () => console.log('打开文档成功'),
+                    fail: (err) => console.error('打开文档失败:', err)
+                  });
+                }
+              },
+              fail: (err) => console.error('下载视频失败:', err)
+            });
+          }
+        }
+      });
+    };
   
     return {
       currentMediaIndex,
@@ -343,7 +417,10 @@
       sendComment,
       handleShare,
       firstImageHeight,
-      imageStyles
+      imageStyles,
+      showDebug,
+      handleVideoError,
+      previewVideo
     }
   }
 }
@@ -354,6 +431,8 @@
     min-height: 100vh;
     background: #f5f5f5;
     padding-bottom: 100px;
+    position: relative;
+    z-index: 0;
   }
 
   .media-swiper {
@@ -372,6 +451,7 @@
   position: relative;
   width: 100%;
   background: #fff;
+  margin-bottom: 20rpx;
 }
 
   .media-video {
@@ -576,5 +656,42 @@
     font-size: 32rpx;
     margin-left: 50rpx;
     font-weight: bold;
+  }
+
+  .debug-info {
+    padding: 20rpx;
+    background: #f5f5f5;
+    margin: 20rpx;
+    border-radius: 8rpx;
+    font-size: 24rpx;
+    color: #666;
+  }
+
+  .debug-info text {
+    display: block;
+    margin-bottom: 10rpx;
+  }
+
+  .video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    background: #000;
+    margin-bottom: 20rpx;
+  }
+
+  .fullscreen-video {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  /* 确保视频控制栏在视频上方 */
+  .fullscreen-video::-webkit-media-controls {
+    z-index: 2;
   }
   </style>
