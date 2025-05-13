@@ -182,7 +182,7 @@ export default {
     width: 100%;
     height: 88rpx;
     line-height: 88rpx;
-    background: linear-gradient(to right, #ff2442, #ff6b81);
+    background: linear-gradient(135deg, #1abc9c, #3498db);
     color: #fff;
     font-size: 32rpx;
     border-radius: 44rpx;

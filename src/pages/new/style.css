@@ -6,6 +6,7 @@
     box-sizing: border-box;
 }
 
+
 .scroll-view_H {
     white-space: nowrap;
 }
@@ -160,23 +161,65 @@
     left: 0;
     width: 100%;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .submit-btn {
-    width: 50%;
+    width: 70%;
     color: white;
     border-radius: 45rpx;
-    background-color: #79c1e7;
-    transition: background-color 0.3s ease;
+    background: linear-gradient(135deg, #1abc9c, #3498db);
+    transition: opacity 0.3s ease;
+    border: none;
 }
 
+
 .submit-btn.disabled {
-    background-color: #79c1e7;
     opacity: 0.5;
     pointer-events: none;
+    background: linear-gradient(135deg, #1abc9c, #3498db);
+
 }
+
 
 .submit-btn.active {
     background-color: #2577e2;
+}
+
+.delete-icon {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 16px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    width: 45px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    z-index: 10;
+}
+
+.scroll-view-item_H {
+    position: relative;
+}
+
+.cover-tag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: linear-gradient(135deg, #1abc9c, #3498db);
+    /* 蓝绿色渐变 */
+    color: #fff;
+    font-size: 20px;
+    padding: 10px 20px;
+    font-weight: 600;
+    border-bottom-right-radius: 8px;
+    /* 只有右下角圆角 */
+    border-top-left-radius: 8px;
+    line-height: 1;
+    z-index: 10;
 }
