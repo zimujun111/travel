@@ -30,8 +30,9 @@
                     <!-- 右侧内容 -->
                     <view class="card-info">
                       <view class="card-title">{{ item.title }}</view>
-                      <view class="card-desc" v-if="item.status==='approved'">{{ item.content }}</view>
-                      <view class="card-desc" v-else>拒绝原因：{{ item.reject_reason.reason }}</view>
+                      <view class="card-desc" v-if="item.status==='approved' || item.status==='pending'">{{ item.content }}</view>
+                      <view class="card-desc" v-else-if="item.status==='rejected'">拒绝原因：{{ item.reject_reason.reason }}</view>
+                      
                     </view>
                   </view>
                   
@@ -41,12 +42,13 @@
                       class="action-btn" 
                       :class="{
                         'passed-btn': item.status === 'approved',
-                        'reject-btn': item.status === 'rejected'
+                        'reject-btn': item.status === 'rejected',
+                        'pending-btn': item.status ==='pending'
                       }"
                       @tap="handlePass(item.note_id)"
                     >
                       <text class="btn-text"
-                      >{{ item.status === 'approved' ? '已通过' : item.status === 'rejected' ? '已拒绝' : '' }}</text>
+                      >{{ item.status === 'approved' ? '已通过' : item.status === 'rejected' ? '已拒绝' : '正在审核' }}</text>
                     </button>
                     <button 
                       class="action-btn delete-btn" 
@@ -287,6 +289,11 @@ const scroll = (e) => {
 .reject-btn {
   color: #fff;
   background-color: #bf0c0c;
+  border: none;
+}
+.pending-btn{
+  color: #fff;
+  background-color: #f6bb19;
   border: none;
 }
 .delete-btn,
