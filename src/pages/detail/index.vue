@@ -164,7 +164,7 @@
         });
         console.log(response.data)
         if (response.data.success) {
-          return response.data.data.imageInfo.avatar || []; // 返回媒体数组
+          return response.data.data.list || []; // 返回媒体数组
         }
         return [];
       } catch (error) {

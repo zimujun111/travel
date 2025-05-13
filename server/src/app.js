@@ -60,14 +60,17 @@ const User = require('./models/User');
 const UserToken = require('./models/User_token');
 const TravelNote = require('./models/TravelNote');
 const image = require('./models/image');
+const RejectReason = require('./models/rejectReason');
 
 
 // 设置模型关联
 UserToken.belongsTo(User, { foreignKey: 'user_id' });
 TravelNote.belongsTo(User, { foreignKey: 'user_id' });
+TravelNote.hasMany(image, { foreignKey: 'note_id' });
 image.belongsTo(TravelNote, { foreignKey: 'note_id' });
 image.belongsTo(User, { foreignKey: 'user_id' });
-
+RejectReason.belongsTo(TravelNote, { foreignKey: 'note_id' });
+TravelNote.hasOne(RejectReason, { foreignKey: 'note_id' });
 // 导入路由
 const userRoutes = require('./routes/userRoutes');
 const travelNoteRoutes = require('./routes/travelNoteRoutes');
@@ -104,4 +107,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app; 
+module.exports = app;

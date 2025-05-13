@@ -5,37 +5,59 @@
         <view class="page-section-spacing">
           <!-- 列表区域 -->
           <scroll-view 
-            :scroll-y="true" 
-            style="height: 100vh;" 
+            scroll-y 
+            :style="{height: `${windowHeight}px`}"
             class="card-scroll-view"
-            scroll-top="{{scrollTop}}"
+            :scroll-top="scrollTop"
+            @scrolltoupper="upper"
+            @scroll="scroll"
           >
             <view class="card-list-wrapper">
               <view class="card-list">
-                <view class="card-item" v-for="item in listData" :key="item.id">
+                <view 
+                  class="card-item" 
+                  
+                  v-for="item in list" 
+                  :key="item.note_id"
+                >
                   <!-- 卡片内容 -->
                   <view class="card-content">
                     <!-- 左侧图片 -->
                     <view class="card-image-container">
-                      <image :src="item.imageUrl" mode="aspectFill" class="card-image"></image>
+                      <image :src="`https://localhost:3000${item.cover_image}`" mode="aspectFill" class="card-image"></image>
                     </view>
                     
                     <!-- 右侧内容 -->
                     <view class="card-info">
                       <view class="card-title">{{ item.title }}</view>
-                      <view class="card-desc">{{ item.description }}</view>
+                      <view class="card-desc" v-if="item.status==='approved'">{{ item.content }}</view>
+                      <view class="card-desc" v-else>拒绝原因：{{ item.reject_reason.reason }}</view>
                     </view>
                   </view>
                   
                   <!-- 底部按钮 -->
                   <view class="card-actions">
-                    <button class="action-btn passed-btn" @tap="handlePass(item.id)">
-                      <text class="btn-text">已通过</text>
+                    <button 
+                      class="action-btn" 
+                      :class="{
+                        'passed-btn': item.status === 'approved',
+                        'reject-btn': item.status === 'rejected'
+                      }"
+                      @tap="handlePass(item.note_id)"
+                    >
+                      <text class="btn-text"
+                      >{{ item.status === 'approved' ? '已通过' : item.status === 'rejected' ? '已拒绝' : '' }}</text>
                     </button>
-                    <button class="action-btn delete-btn" @tap="handleDelete(item.id)">
+                    <button 
+                      class="action-btn delete-btn" 
+                      @tap="handleDelete(item.note_id)"
+                    >
                       <text class="btn-text">删除</text>
                     </button>
-                    <button class="action-btn edit-btn" @tap="handleEdit(item)">
+                    <button 
+                      class="action-btn edit-btn" 
+                      @tap="handleEdit(item)"
+                    >
                       <text class="btn-text">编辑</text>
                     </button>
                   </view>
@@ -49,128 +71,92 @@
   </view>
 </template>
 
-<script>
+<script setup>
+import { ref,onMounted,computed } from 'vue'
 import Taro from '@tarojs/taro'
+import { useTravelStore } from '../../stores/travelstores'
 
-export default {
-  name: 'ListCard',
-  data() {
-    return {
-      // 模拟数据
-      listData: [
-      {
-        "id": 1,
-        "title": "桂林漓江风情游",
-        "description": "沿着桂林漓江顺流而下，两岸奇峰罗列，江水清澈见底，仿佛一幅天然的水墨画卷在眼前徐徐展开。竹筏飘荡在江上，渔夫悠然自得地撑着篙，时不时还能看到岸边的水牛在吃草，那种惬意的田园风光让人沉醉不已。",
-        "imageUrl": "https://picsum.photos/seed/guilin1/200/200",
-        "author": "小王",
-        "createTime": "2025-05-01 09:30:00",
-        "status": "pending"
-    },
-    {
-        "id": 2,
-        "title": "张家界奇峰探秘行",
-        "description": "踏入张家界，就仿佛进入了一个奇幻的世界。那些高耸入云的奇峰异石，形态各异，有的像利剑直插苍穹，有的像仙女亭亭玉立，在云雾缭绕中若隐若现，每走一步都有不一样的景致，让人不禁感叹大自然的鬼斧神工。",
-        "imageUrl": "https://picsum.photos/seed/zhangjiajie1/200/200",
-        "author": "小李",
-        "createTime": "2025-04-30 14:15:00",
-        "status": "approved"
-    },
-    {
-        "id": 3,
-        "title": "三亚海滨浪漫之旅",
-        "description": "三亚的海滩简直是人间天堂呀！金色的沙滩细腻柔软，踩上去就像踩在棉花上一样。湛蓝的大海一望无际，海浪一波接着一波地涌来，在沙滩上留下一片片白色的泡沫。傍晚时分，看着夕阳慢慢沉入海平面，整个天空被染成了橙红色，美不胜收，太适合情侣来享受浪漫时光啦。",
-        "imageUrl": "https://picsum.photos/seed/sanya1/200/200",
-        "author": "小张",
-        "createTime": "2025-04-28 16:40:00",
-        "status": "rejected"
-    },
-    {
-        "id": 4,
-        "title": "杭州西湖春日漫步",
-        "description": "春日的西湖别有一番韵味，湖边垂柳依依，嫩绿的柳枝随风飘舞，仿佛是大自然垂下的绿色丝绦。桃花、杏花竞相绽放，红的像火，粉的像霞，白的像雪，与波光粼粼的湖面相互映衬。租一艘小船，划行在湖面上，感受着微风拂面，惬意极了。",
-        "imageUrl": "https://picsum.photos/seed/hangzhou1/200/200",
-        "author": "小赵",
-        "createTime": "2025-04-26 13:20:00",
-        "status": "pending"
-    },
-    {
-        "id": 5,
-        "title": "西安古城历史游",
-        "description": "漫步在西安古城的大街小巷，仿佛穿越回了古代。那古老而厚重的城墙，见证了无数的历史变迁，城墙上的每一块砖石都似乎在诉说着过去的故事。钟鼓楼庄严肃穆，站在楼上俯瞰，古城的风貌尽收眼底，古色古香的建筑鳞次栉比，让人沉浸在浓厚的历史氛围之中。",
-        "imageUrl": "https://picsum.photos/seed/xian1/200/200",
-        "author": "小孙",
-        "createTime": "2025-04-25 11:50:00",
-        "status": "approved"
-    },
-    {
-        "id": 6,
-        "title": "成都美食探索之旅",
-        "description": "成都是一座来了就不想走的美食之都呀！大街小巷遍布着各种各样的美食小吃，从麻辣鲜香的火锅，到外酥里嫩的串串，再到软糯香甜的糖油果子，每一口都让人回味无穷。而且成都的美食店氛围都特别好，充满了人间烟火气，边吃边感受这座城市的热情。",
-        "imageUrl": "https://picsum.photos/seed/chengdu1/200/200",
-        "author": "小陈",
-        "createTime": "2025-04-24 15:30:00",
-        "status": "rejected"
-    }
-      ],
-      
-      // 滚动控制
-      scrollTop: 0
-    }
-  },
-  
-  methods: {
-    // 处理通过
-    handlePass(id) {
-      console.log(`通过项目: ${id}`);
-      // 这里可以添加通过项目的逻辑
-    },
-    
-    // 处理删除
-    handleDelete(id) {
-      console.log(`删除项目: ${id}`);
-      // 显示确认对话框
-      Taro.showModal({
-        title: '确认删除',
-        content: '确定要删除这个项目吗？',
-        success: (res) => {
-          if (res.confirm) {
-            // 从列表中删除项目
-            this.listData = this.listData.filter(item => item.id !== id);
+const scrollTop = ref(0)
+const userInfo=Taro.getStorageSync('userinfo')
+
+const myTravelStore = useTravelStore()
+const list = computed(() =>myTravelStore.myTravellist)
+
+const fetchMyNotes = () => {
+  myTravelStore.fetchMyNotes()
+}
+
+onMounted(() => {
+    fetchMyNotes()
+})
+console.log(list.value)
+
+const handlePass = (id) => {
+  console.log(`通过项目: ${id}`)
+  // 这里可以添加通过项目的逻辑
+}
+
+// 处理删除
+const handleDelete = (id) => {
+  console.log(`删除项目: ${id}`)
+  // 显示确认对话框
+  Taro.showModal({
+    title: '确认删除',
+    content: '确定要删除这个项目吗？',
+    success: (res) => {
+      // if (res.confirm) {
+      //   // 从列表中删除项目
+      //   listData.value = listData.value.filter(item => item.id !== id)
+      // }
+      Taro.showLoading({ title: '删除中...' })
+        Taro.request({
+          url: `https://localhost:3000/api/travel-notes/${id}`,
+          method: 'DELETE',
+          data: {
+            user_id: userInfo.user_id
+          },
+          success: () => {
+            Taro.hideLoading()
+            Taro.showToast({ title: '删除成功', icon: 'success' })
+            Taro.switchTab({ url: '/pages/my/index' })
+          },
+          fail: (err) => {
+            Taro.hideLoading()
+            console.error('删除失败:', err)
+            Taro.showToast({ title: '删除失败', icon: 'none' })
           }
-        }
-      });
-    },
-    
-    // 处理编辑
-    handleEdit(item) {
-      console.log(`编辑项目: ${item.id}`);
-      // 跳转到编辑页面，并传递当前 item 的内容
-      Taro.navigateTo({
-        url: `/pages/new/index?item=${encodeURIComponent(JSON.stringify(item))}`,
-        success: () => {
-          console.log('跳转成功');
-        },
-        fail: (err) => {
-          console.error('跳转失败:', err);
-          Taro.showToast({
-            title: '跳转失败，请重试',
-            icon: 'none'
-          });
-        }
-      });
-    },
-    
-    // 滚动到顶部回调
-    upper(e) {
-      console.log('滚动到顶部:', e);
-    },
-    
-    // 滚动过程回调
-    scroll(e) {
-      // 可以在这里添加滚动过程中的逻辑
+        })
     }
-  }
+  })
+}
+
+// 处理编辑
+const handleEdit = (item) => {
+  console.log(`编辑项目: ${item.id}`)
+  // 跳转到编辑页面，并传递当前 item 的内容
+  Taro.navigateTo({
+    url: `/pages/new/index?item=${encodeURIComponent(JSON.stringify(item))}`,
+    success: () => {
+      console.log('跳转成功')
+    },
+    fail: (err) => {
+      console.error('跳转失败:', err)
+      Taro.showToast({
+        title: '跳转失败，请重试',
+        icon: 'none'
+      })
+    }
+  })
+}
+
+// 滚动到顶部回调
+const upper = (e) => {
+  console.log('滚动到顶部:', e)
+}
+
+// 滚动过程回调
+const scroll = (e) => {
+  // 可以在这里添加滚动过程中的逻辑
 }
 </script>
 
@@ -212,6 +198,8 @@ export default {
   display: flex;
   flex-direction: column;
 }
+
+
 
 .card-item:hover {
   transform: translateY(-2rpx);
@@ -296,7 +284,11 @@ export default {
   background-color: #10b981;
   border: none;
 }
-
+.reject-btn {
+  color: #fff;
+  background-color: #bf0c0c;
+  border: none;
+}
 .delete-btn,
 .edit-btn {
   height: 60rpx;
@@ -316,4 +308,4 @@ export default {
   width: 100%;
   height: 100%;
 }
-</style>  
+</style>

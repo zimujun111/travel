@@ -186,6 +186,7 @@ export default {
       Taro.navigateTo({
         url: `/pages/detail/index?note_id=${item.note_id}`
       })
+      console.log(item.note_id)
     }
 
     return {

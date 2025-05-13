@@ -41,10 +41,10 @@ export default {
     const currentPage = ref(1)
     const pageSize = ref(10)
     
-      const handleHeightChange = (height) => {
-        navbarFullHeight.value = height
-        
-      }
+    
+    const handleHeightChange = (height) => {
+      navbarFullHeight.value = height
+    }
       const detailsClick = () => {
         Taro.navigateTo({
           url: '/pages/detail/index'
@@ -54,20 +54,43 @@ export default {
     const list= computed(() =>travelStore.list)
     const total = computed(() =>travelStore.total)
     const totalPages= computed(() =>travelStore.totalPages)
+    const isLoading = computed(() => travelStore.isLoading)
+    const hasMore = computed(() => travelStore.hasMore)
     const fetchNotes = async () => {
       await travelStore.fetchNotes(currentPage.value, pageSize.value)
     }
-
+     // 初始化加载
+     const initLoad = async () => {
+      await travelStore.fetchNotes(1, pageSize.value)
+    }
+    
+    // 加载更多
+    const loadMore = async () => {
+      if (!isLoading.value && hasMore.value) {
+        await travelStore.fetchNotes(travelStore.currentPage + 1, pageSize.value)
+      }
+    }
     onMounted(() => {
       fetchNotes()
+      initLoad()
+      
+     
     })
-    return{
-    list ,
-    handleHeightChange,
-    navbarFullHeight,
-    detailsClick,
-    fetchNotes 
-  }
+    
+    Taro.useReachBottom(() => {
+        console.log('触底了') 
+        loadMore()
+      })
+    return {
+      list,
+      handleHeightChange,
+      navbarFullHeight,
+      detailsClick,
+      fetchNotes,
+      isLoading,
+      hasMore,
+      loadMore
+    }
   }
 }
 </script>

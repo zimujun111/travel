@@ -1,3 +1,9 @@
+page {
+  height: initial;
+  overflow-y: initial;
+  min-height: 100vh;
+}
+
 .tab-bar-container {
   position: fixed;
   bottom: 0;

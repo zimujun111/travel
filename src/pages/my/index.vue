@@ -61,12 +61,12 @@
 
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,computed } from 'vue'
 import Taro from '@tarojs/taro'
 import { View, Button } from '@tarojs/components'
 import CustomTabBar from '../../custom-tab-bar/index.vue'
 import phoneLogin from '../../components/phoneLogin/index.vue'
-
+import { useTravelStore } from '../../stores/travelstores'
 export default {
   components: {
     View,
@@ -85,13 +85,21 @@ export default {
       
     })
     const isLogin=ref(false)
-    const travel_num=ref(0)
+    
     const detailClick = () => {
       Taro.showToast({
         title: '暂未开发',
         icon: 'none'
       })
     }
+    const myTravelStore = useTravelStore()
+    const travel_num = computed(() =>myTravelStore.myTravelTotalNum)
+    const fetchMyNotes = () => {
+      myTravelStore.fetchMyNotes()
+    }
+    onMounted(() => {
+        fetchMyNotes()
+    })
 
     const tomytravel = () => {
       Taro.navigateTo({

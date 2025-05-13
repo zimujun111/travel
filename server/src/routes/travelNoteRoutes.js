@@ -48,10 +48,16 @@ router.get('/approved', async (req, res) => {
       order: [['created_at', 'DESC']],
       limit: parseInt(pageSize),
       offset: (parseInt(page) - 1) * parseInt(pageSize),
-      include: [{
-        model: User,
-        attributes: ['username', 'avatar_url']
-      }]
+      include: [
+        {
+          model: User,
+          attributes: ['username', 'avatar_url']
+        },
+        {
+          model: image,
+          attributes: ['url']
+        }
+      ]
     });
 
     res.json({
@@ -91,20 +97,71 @@ router.get('/getNoteImages/:note_id', async (req, res) => {
     res.json({
       success: true,
       data: {
-        imageInfo: {
-          avatar: images
-        }
+        total: images.length,
+        list: images
       }
     });
   } catch (error) {
-    console.error('获取游记图片失败:', error);
+    console.error('获取我的失败:', error);
     res.status(500).json({
       success: false,
-      message: '获取游记图片失败'
+      message: '获取我的失败'
     });
   }
 });
+// 获取我的游记
+router.get('/myTravel/:user_id', async (req, res) => {
+  try {
+    
+    const { user_id } = req.params;
+    const notes = await TravelNote.findAndCountAll({
+      where: {
+        user_id: user_id,
+      },
+      order: [['created_at', 'DESC']],
+     
+      include: [
+        {
+          model: User,
+          attributes: ['username', 'avatar_url']
+        },
+        {
+          model: image,
+          attributes: ['url']
+        },
+        {
+          model: require('../models/rejectReason'),
+          as: 'reject_reason',
+          attributes: ['reason'],
+          required: false
+        }
+      ]
+    });
 
+    // 处理返回数据，添加拒绝原因
+    const processedNotes = notes.rows.map(note => {
+      const noteData = note.get({ plain: true });
+      if (noteData.status === 'rejected' && noteData.RejectReason) {
+        noteData.rejectReason = noteData.RejectReason.reason;
+      }
+      return noteData;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        total: notes.count,
+        list: processedNotes
+      }
+    });
+  } catch (error) {
+    console.error('获取我的游记失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取我的游记失败'
+    });
+  }
+});
 
 // 图片存储配置
 const imageStorage =  multer.diskStorage({
@@ -297,4 +354,68 @@ router.post('/new',  async (req, res) => {
 });
 
 
-module.exports = router; 
+// 删除游记
+router.delete('/:note_id', async (req, res) => {
+  try {
+    const { note_id } = req.params;
+    const { user_id } = req.body;
+
+    // 验证用户权限
+    const note = await TravelNote.findOne({
+      where: { note_id }
+    });
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: '游记不存在'
+      });
+    }
+
+    if (note.user_id !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: '无权删除该游记'
+      });
+    }
+
+    // 获取关联的图片和视频
+    const mediaFiles = await image.findAll({
+      where: { note_id }
+    });
+
+    // 删除文件系统中的文件
+    const baseDir = path.join(__dirname, '../../../');
+    for (const file of mediaFiles) {
+      const filePath = path.join(baseDir, 'server', file.url);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    // 删除封面图片
+    if (note.cover_image) {
+      const coverPath = path.join(baseDir, 'server', note.cover_image);
+      if (fs.existsSync(coverPath)) {
+        fs.unlinkSync(coverPath);
+      }
+    }
+
+    // 删除数据库记录
+    await image.destroy({ where: { note_id } });
+    await TravelNote.destroy({ where: { note_id } });
+
+    res.json({
+      success: true,
+      message: '游记删除成功'
+    });
+  } catch (error) {
+    console.error('删除游记失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '删除游记失败'
+    });
+  }
+});
+
+module.exports = router;

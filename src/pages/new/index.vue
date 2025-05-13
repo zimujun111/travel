@@ -119,6 +119,7 @@ export default defineComponent({
       video.value = ''
       videoCover.value = ''
       showVideoPreview.value = false
+      
     }
 
     const openPreview = index => {
@@ -355,10 +356,16 @@ export default defineComponent({
         try {
           const item = JSON.parse(decodeURIComponent(router.params.item))
           title.value = item.title || ''
-          content.value = item.description || ''
-          if (item.imageUrl) {
-            images.value = [item.imageUrl]
+          content.value = item.content || ''
+          //有bug
+          if (item.images) {
+            
+              images.value = item.images.map(img => `https://localhost:3000${img.url}`)
+
           }
+          
+        
+           
           // 设置页面标题为编辑模式
           Taro.setNavigationBarTitle({
             title: '编辑游记'
