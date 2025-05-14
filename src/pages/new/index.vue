@@ -334,16 +334,19 @@ const submit = async () => {
   // 获取路由参数判断是否为编辑模式
   const router = Taro.getCurrentInstance()?.router;
   const isEditMode = router?.params?.item ? true : false;
+  if (!ruleAgreed.value) {
+        return Taro.showToast({ title: '请先阅读并同意社区规则', icon: 'none' })
+      }
+      if (!title.value.trim()) {
+        return Taro.showToast({ title: '请输入标题', icon: 'none' })
+      }
+      if (!content.value.trim()) {
+        return Taro.showToast({ title: '请输入内容', icon: 'none' })
+      }
+      if (images.value.length === 0 && !video.value) {
+        return Taro.showToast({ title: '请上传图片或视频', icon: 'none' })
+      }
   
-  if (!title.value.trim()) {
-    return Taro.showToast({ title: '请输入标题', icon: 'none' });
-  }
-  if (!content.value.trim()) {
-    return Taro.showToast({ title: '请输入内容', icon: 'none' });
-  }
-  if (images.value.length === 0 && !video.value) {
-    return Taro.showToast({ title: '请上传图片或视频', icon: 'none' });
-  }
   
   Taro.showLoading({ title: '处理中...' });
   
@@ -642,8 +645,8 @@ const submit = async () => {
   background: #e6f7ff;
   color: #333;
   border-radius: 28px;
-  padding: 12px 28px;
-  font-size: 20px;
+  padding: 12px 26px;
+  font-size: 26px;
   min-width: auto;
   width: auto;
   line-height: 1.5;
@@ -680,7 +683,7 @@ const submit = async () => {
   display: flex;
   align-items: center;
   margin-top: 18px;
-  font-size: 20px;
+  font-size: 26px;
   color: #bbb;
 }
 .rule-checkbox {
@@ -721,11 +724,11 @@ const submit = async () => {
 }
 .rule-text {
   color: #bbb;
-  font-size: 20px;
+  font-size: 26px;
 }
 .rule-link {
   color: #1890ff;
-  font-size: 20px;
+  font-size: 24px;
   margin-left: 8px;
   text-decoration: none;
   cursor: pointer;
@@ -746,7 +749,7 @@ const submit = async () => {
   background: #fff;
   border-radius: 12px;
   width: 80vw;
-  max-width: 400px;
+  max-width: 420px;
   padding: 24px 18px 12px 18px;
   box-sizing: border-box;
   display: flex;
@@ -754,14 +757,14 @@ const submit = async () => {
   align-items: center;
 }
 .rule-modal-title {
-  font-size: 18px;
+  font-size: 26px;
   font-weight: bold;
   margin-bottom: 12px;
   color: #222;
 }
 .rule-modal-content {
   max-height: 200px;
-  font-size: 15px;
+  font-size: 26px;
   color: #444;
   margin-bottom: 18px;
 }
@@ -772,7 +775,7 @@ const submit = async () => {
   text-align: center;
   border-radius: 8px;
   padding: 10px 0;
-  font-size: 16px;
+  font-size: 26px;
   margin-top: 8px;
   cursor: pointer;
 }

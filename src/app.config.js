@@ -1,3 +1,4 @@
+let appStartTime = 0;
 export default {
   pages: [
     'pages/index/index',
@@ -14,7 +15,6 @@ export default {
     navigationBarTitleText: 'Taro Vue Demo',
     navigationBarTextStyle: 'black'
   },
-  
   tabBar: {
     color: '#999',
     custom: true,

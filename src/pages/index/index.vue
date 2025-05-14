@@ -40,6 +40,7 @@ export default {
     const navbarFullHeight = ref(0)
     const currentPage = ref(1)
     const pageSize = ref(10)
+    let startTime = Date.now()
     
     
     const handleHeightChange = (height) => {
@@ -73,7 +74,8 @@ export default {
     onMounted(() => {
       fetchNotes()
       initLoad()
-      
+      const loadTime = Date.now() - startTime
+      console.log('首屏渲染时间(ms):', loadTime)
      
     })
     
