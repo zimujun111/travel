@@ -96,6 +96,20 @@
             class="tag"
           >#{{ tag }}</text>
         </view>
+        <!-- 新增：选择话题功能 -->
+        <view class="topic-row">
+          <view class="topic-btn" @tap="chooseTopic">
+            <text class="topic-icon">#</text>
+            <text class="topic-text">话题</text>
+            <text class="topic-arrow">&gt;</text>
+          </view>
+          <view class="selected-topics">
+            <view v-for="(topic, idx) in selectedTopics" :key="topic" class="selected-topic">
+              <text>#{{ topic }}</text>
+              <text class="remove-topic" @tap="removeTopic(idx)">×</text>
+            </view>
+          </view>
+        </view>
       </view>
 
       <!-- 位置 -->
@@ -225,6 +239,25 @@
     }
    
     const showDebug = ref(true) // 开启调试信息显示
+    const selectedTopics = ref([])
+    const allTopics = ["美食", "旅行", "摄影", "运动", "生活", "科技"] // 可根据实际情况调整
+    const chooseTopic = () => {
+      Taro.showActionSheet({
+        itemList: allTopics,
+        success: function (res) {
+          const topic = allTopics[res.tapIndex]
+          if (!selectedTopics.value.includes(topic)) {
+            selectedTopics.value.push(topic)
+          }
+        },
+        fail: function (res) {
+          // 用户取消
+        }
+      })
+    }
+    const removeTopic = (idx) => {
+      selectedTopics.value.splice(idx, 1)
+    }
 
     onMounted(async () => {
       const note_id = Taro.getCurrentInstance().router.params.note_id;
@@ -498,11 +531,16 @@
       showDebug,
       handleVideoError,
       previewVideo,
+
       handleAIAnalysis,
       showAnalysisModal,
       analysisContent,
       closeAnalysisModal,
-      copyAnalysisContent
+      copyAnalysisContent,
+      selectedTopics,
+      chooseTopic,
+      removeTopic
+
     }
   }
 }
@@ -585,7 +623,7 @@
   }
 
   .follow-btn {
-    background: #ff2442;
+    background: #319cd4;
     color: white;
     border-radius: 32rpx;
     padding: 0 32rpx;
@@ -621,7 +659,7 @@
   }
 
   .tag {
-    color: #ff2442;
+    color: #319cd4;
     font-size: 28rpx;
     margin-right: 20rpx;
     margin-bottom: 12rpx;
@@ -734,7 +772,7 @@
   }
 
   .send-btn {
-    color: #ff2442;
+    color: #319cd4;
     font-size: 32rpx;
     margin-left: 50rpx;
     font-weight: bold;
@@ -799,6 +837,7 @@
   .fullscreen-video::-webkit-media-controls {
     z-index: 2;
   }
+
   .ai-stop {
     position: fixed;
     right: 30rpx;
@@ -818,3 +857,56 @@
   }
   </style>
   <style src="./index.css"></style>
+  <style>
+  .topic-row {
+    display: flex;
+    align-items: center;
+    margin-top: 24rpx;
+  }
+  .topic-btn {
+    display: flex;
+    align-items: center;
+    background: #f2f4f7;
+    border-radius: 32rpx;
+    padding: 0 28rpx;
+    height: 64rpx;
+    font-size: 30rpx;
+    color: #222;
+    margin-right: 20rpx;
+  }
+  .topic-icon {
+    font-weight: bold;
+    margin-right: 8rpx;
+  }
+  .topic-text {
+    margin-right: 8rpx;
+  }
+  .topic-arrow {
+    font-size: 36rpx;
+    color: #888;
+  }
+  .selected-topics {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .selected-topic {
+    display: flex;
+    align-items: center;
+    background: #f2f4f7;
+    border-radius: 32rpx;
+    padding: 0 20rpx;
+    height: 64rpx;
+    font-size: 28rpx;
+    color: #222;
+    margin-right: 16rpx;
+    margin-bottom: 8rpx;
+  }
+  .remove-topic {
+    color: #bbb;
+    font-size: 38rpx;
+    margin-left: 8rpx;
+    cursor: pointer;
+  }
+  </style>
+

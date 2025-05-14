@@ -1,5 +1,7 @@
 <template>
+
   <view class="index">
+
     <!-- 图片或视频预览区域 -->
     <scroll-view class="scroll-view_H" :scroll-x="true" style="width: 100%">
       <template v-if="images.length > 0">
@@ -7,15 +9,23 @@
           v-for="(img, index) in images"
           :key="index"
           class="scroll-view-item_H"
-          @tap="openPreview(index)"
         >
-          <image :src="img" mode="aspectFill" />
+          <image :src="img" mode="aspectFill" @tap="openPreview(index)" />
+          
+          <!-- 覆盖在图片上的"封面"标签 -->
+          <view v-if="index === 0" class="cover-tag">封面</view>
+
+          <!-- 删除按钮 -->
+          <view class="delete-icon" @tap.stop="deleteImage(index)">×</view>
         </view>
+
       </template>
       <template v-else-if="video">
-        <view class="scroll-view-item_H video-wrapper" @tap="showVideoPreview = true">
-          <image :src="videoCover || video" class="video-cover" mode="aspectFill" />
+        <view class="scroll-view-item_H video-wrapper">
+          <image :src="videoCover || video" class="video-cover" mode="aspectFill" @tap="showVideoPreview = true" />
           <view class="play-icon">▶</view>
+          <!-- 删除按钮 -->
+          <view class="delete-icon" @tap.stop="removeVideo">×</view>
         </view>
       </template>
 
@@ -69,15 +79,54 @@
       <textarea v-model="content" placeholder="添加正文" class="content-textarea" rows="15" maxlength="800" />
     </view>
 
+    <view class="form-item topic-section">
+      <view class="topic-row">
+        <view class="topic-btn" @tap="selectTopic"># 话题</view>
+        <view class="selected-topics-container">
+          <view class="selected-topic" v-for="(topic, index) in selectedTopics" :key="index">
+            <text>{{ topic }}</text>
+            <text class="remove-icon" @tap="removeTopic(index)">×</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 新增社区规则勾选 -->
+    <view class="rule-row">
+      <view class="rule-checkbox" @tap="toggleRuleAgree">
+        <view :class="['circle', ruleAgreed ? 'checked' : '']"></view>
+      </view>
+      <text class="rule-text">阅读并同意</text>
+      <text class="rule-link" @tap="showRuleModal">《社区发布规则》</text>
+    </view>
+
+    <view v-if="showRule" class="rule-modal-overlay">
+      <view class="rule-modal">
+        <view class="rule-modal-title">社区发布规则</view>
+        <scroll-view class="rule-modal-content" scroll-y>
+          <view>1. 禁止发布违法违规内容；</view>
+          <view>2. 禁止广告、刷屏、恶意引流；</view>
+          <view>3. 尊重他人，禁止人身攻击、歧视等；</view>
+          <view>4. 其他详细规则请见社区公告。</view>
+        </scroll-view>
+        <view class="rule-modal-btn" @tap="showRule = false">我知道了</view>
+      </view>
+    </view>
+
     <view class="submit-wrapper">
+<!-- 
+      <view class="icon-placeholder">
+  <image src="../../assets/images/draft.png" class="icon-img" />
+</view> -->
       <button @tap="submit" :class="isAllRequiredFilled() ? 'submit-btn active' : 'submit-btn disabled'" class="submit-btn">发布</button>
     </view>
   </view>
 </template>
 
+
 <script>
 import Taro from '@tarojs/taro'
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 
 export default defineComponent({
   name: 'TravelEdit',
@@ -93,6 +142,18 @@ export default defineComponent({
     const isPublished = ref(false) // 新增状态标记是否已经发布
     const userData = Taro.getStorageSync('userinfo')
     const item = ref(null) // 新增的 item 变量，用于存储编辑的游记数据
+    const selectedTopics = ref([])
+    const searchKeyword = ref('')
+    const ruleAgreed = ref(false)
+    const showRule = ref(false)
+    const allTopics = ['美食', '风景', '亲子', '自驾', '摄影', '历史', '人文','旅行','北京旅游','上海旅游']
+    
+    const filteredTopics = computed(() => {
+      return allTopics.filter(topic => 
+        !selectedTopics.value.includes(topic) && 
+        topic.includes(searchKeyword.value)
+      )
+    })
     
     const isAllRequiredFilled = () => {
       return title.value.trim() && content.value.trim()
@@ -224,12 +285,15 @@ export default defineComponent({
       if (video.value.startsWith('https://localhost')) {
         const url = new URL(video.value);
         uploadedMedia.video = url.pathname + (url.search || '') + (url.hash || '');
-        
-        // 如果是网络视频封面，也直接返回路径
+
         if (videoCover.value.startsWith('https://localhost')) {
           const coverUrl = new URL(videoCover.value);
           uploadedMedia.videoCover = coverUrl.pathname + (coverUrl.search || '') + (coverUrl.hash || '');
-        }
+
+        return uploadedMedia
+      } 
+    
+    
       } else {
         // 新视频需要上传
         const videoRes = await Taro.uploadFile({
@@ -265,6 +329,7 @@ export default defineComponent({
     throw error;
   }
 }
+
 const submit = async () => {
   // 获取路由参数判断是否为编辑模式
   const router = Taro.getCurrentInstance()?.router;
@@ -356,7 +421,7 @@ const submit = async () => {
         content: content.value,
         images: images.value,
         video: video.value,
-        videoCover: videoCover.value
+        videoCover: videoCover.value,
       })
     }
 
@@ -389,6 +454,96 @@ const submit = async () => {
           }
         })
       }
+    }
+
+    const deleteImage = (index) => {
+      images.value.splice(index, 1)
+    }
+
+    const selectTopic = () => {
+      // 过滤掉已选话题
+      const availableTopics = allTopics.filter(t => !selectedTopics.value.includes(t))
+      
+      if (availableTopics.length === 0) {
+        Taro.showToast({
+          title: '已选择所有话题',
+          icon: 'none'
+        })
+        return
+      }
+
+      // 准备操作表选项：搜索 + 默认话题（最多显示5个）
+      const actionSheetItems = ['搜索话题', ...availableTopics.slice(0, 5)]
+
+      Taro.showActionSheet({
+        itemList: actionSheetItems,
+        success: res => {
+          if (res.tapIndex === 0) {
+            // 点击搜索话题
+            Taro.showModal({
+              title: '搜索话题',
+              editable: true,
+              placeholderText: '请输入话题关键词',
+              success: modalRes => {
+                if (modalRes.confirm) {
+                  searchKeyword.value = modalRes.content
+                  const filteredResults = filteredTopics.value
+                  
+                  if (filteredResults.length === 0) {
+                    Taro.showToast({
+                      title: '未找到相关话题',
+                      icon: 'none'
+                    })
+                    return
+                  }
+
+                  // 显示搜索结果
+                  Taro.showActionSheet({
+                    itemList: filteredResults,
+                    success: actionRes => {
+                      if (actionRes.tapIndex >= 0) {
+                        const selectedTopic = filteredResults[actionRes.tapIndex]
+                        if (selectedTopic) {
+                          selectedTopics.value.push(selectedTopic)
+                        }
+                      }
+                    },
+                    fail: (err) => {
+                      console.error('未选择话题:', err)
+                      
+                    }
+                  })
+                }
+              }
+            })
+          } else {
+            // 点击默认话题
+            const selectedTopic = availableTopics[res.tapIndex - 1]
+            if (selectedTopic) {
+              selectedTopics.value.push(selectedTopic)
+            }
+          }
+        },
+        fail: (err) => {
+          console.error('选择话题失败:', err)
+          Taro.showToast({
+            title: '选择话题失败',
+            icon: 'none'
+          })
+        }
+      })
+    }
+
+    const removeTopic = (index) => {
+      selectedTopics.value.splice(index, 1)
+    }
+
+    const toggleRuleAgree = () => {
+      ruleAgreed.value = !ruleAgreed.value
+    }
+
+    const showRuleModal = () => {
+      showRule.value = true
     }
 
     onMounted(() => {
@@ -440,6 +595,8 @@ const submit = async () => {
       confirmSaveDraft()
     })
 
+
+
     return {
       title,
       content,
@@ -457,10 +614,175 @@ const submit = async () => {
       deletePreviewImage,
       handleAddMedia,
       submit,
-      isAllRequiredFilled
+      isAllRequiredFilled,
+      deleteImage,
+      selectedTopics,
+      selectTopic,
+      removeTopic,
+      ruleAgreed,
+      showRule,
+      toggleRuleAgree,
+      showRuleModal
     }
   }
 })
 </script>
+
+<style>
+.topic-section {
+  margin-top: 20px;
+}
+.topic-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.topic-btn {
+  background: #e6f7ff;
+  color: #333;
+  border-radius: 28px;
+  padding: 12px 28px;
+  font-size: 20px;
+  min-width: auto;
+  width: auto;
+  line-height: 1.5;
+  height: auto;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.selected-topics-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.selected-topic {
+  display: flex;
+  align-items: center;
+  background: #e6f7ff;
+  border-radius: 28px;
+  padding: 12px 28px;
+  font-size: 20px;
+  line-height: 1.5;
+  
+}
+.remove-icon {
+  margin-left: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 22px;
+}
+.rule-row {
+  display: flex;
+  align-items: center;
+  margin-top: 18px;
+  font-size: 20px;
+  color: #bbb;
+}
+.rule-checkbox {
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  background: #fff;
+  position: relative;
+}
+.circle.checked {
+  border: 2px solid #1890ff;
+  background: #1890ff;
+}
+.circle.checked::after {
+  content: '';
+  display: none;
+}
+.circle.checked::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 0px;
+  width: 10px;
+  height: 18px;
+  border: solid #fff;
+  border-width: 0 4px 4px 0;
+  display: block;
+  transform: rotate(45deg);
+}
+.rule-text {
+  color: #bbb;
+  font-size: 20px;
+}
+.rule-link {
+  color: #1890ff;
+  font-size: 20px;
+  margin-left: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.rule-modal-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.35);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rule-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 80vw;
+  max-width: 400px;
+  padding: 24px 18px 12px 18px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rule-modal-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #222;
+}
+.rule-modal-content {
+  max-height: 200px;
+  font-size: 15px;
+  color: #444;
+  margin-bottom: 18px;
+}
+.rule-modal-btn {
+  width: 100%;
+  background: #319cd4;
+  color: #fff;
+  text-align: center;
+  border-radius: 8px;
+  padding: 10px 0;
+  font-size: 16px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.icon-img {
+  width: 40px;
+  height: 40px;
+  display: block;
+  margin-left: 50px;
+}
+</style>
 
 <style src="./style.css"></style>
