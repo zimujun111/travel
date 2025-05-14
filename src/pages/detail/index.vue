@@ -305,6 +305,11 @@
         };
         console.log('最终处理后的post数据:', post.value);
       }
+      // 启用分享功能
+      Taro.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
     });
     
     const onImageLoad = (e) => {
@@ -398,28 +403,36 @@
         Taro.showToast({ title: '评论成功', icon: 'success' })
       }
     }
+    const handleShare = () => {
+      // 显示分享菜单
+      Taro.showActionSheet({
+        itemList: ['分享给朋友', '分享到朋友圈'],
+        success: function (res) {
+          // 用户选择了分享选项
+          console.log('用户选择了分享选项:', res.tapIndex)
+        }
+      })
+    }
+    
+    // 定义分享给朋友
     useShareAppMessage(() => {
+      const note_id = Taro.getCurrentInstance().router.params.note_id
       return {
         title: post.value.title,
-        path: `/pages/detail/index?id=${post.value.id}`, 
-        imageUrl: post.value.media[0].url 
+        path: `/pages/detail/index?note_id=${note_id}`,
+        imageUrl: post.value.media[0]?.type === 'image' ? post.value.media[0].url : post.value.media[0]?.poster
       }
     })
-    const handleShare = () => {
-        try {
-            useShareAppMessage({
-            title: post.value.title,
-            path: `/pages/detail/index?id=${post.value.id}`,
-            imageUrl: post.value.media[0].type === 'image' ? post.value.media[0].url : post.value.media[0].poster
-            })
-        } catch (error) {
-            Taro.showToast({
-            title: '分享失败',
-            icon: 'none'
-            })
-            console.error('分享错误:', error)
-        }
-    }
+
+    // 定义分享到朋友圈
+    useShareTimeline(() => {
+      const note_id = Taro.getCurrentInstance().router.params.note_id
+      return {
+        title: post.value.title,
+        query: `note_id=${note_id}`,
+        imageUrl: post.value.media[0]?.type === 'image' ? post.value.media[0].url : post.value.media[0]?.poster
+      }
+    })
     
     const handleAIAnalysis = () => {
       analysisContent.value = '' // 清空之前的内容
