@@ -75,11 +75,12 @@ TravelNote.hasOne(RejectReason, { foreignKey: 'note_id' });
 const userRoutes = require('./routes/userRoutes');
 const travelNoteRoutes = require('./routes/travelNoteRoutes');
 const searchRoutes = require('./routes/searchRoutes');
-
+const deepseek= require('./routes/deepseek');
 // 使用路由
 app.use('/api/users', userRoutes);
 app.use('/api/travel-notes', travelNoteRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/deepseek',deepseek);
 // 路由
 app.get('/', (req, res) => {
   res.json({ message: '欢迎使用 Taro Demo API' });

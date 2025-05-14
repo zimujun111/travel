@@ -9,32 +9,75 @@ const image = require('../models/image');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 
-function getVideoCover(videoPath, outputDir) {
+// function getVideoCover(videoPath, outputDir) {
+//   return new Promise((resolve, reject) => {
+//     if (!fs.existsSync(outputDir)) {
+//       fs.mkdirSync(outputDir, { recursive: true });
+//     }
+//     const filename = path.basename(videoPath, path.extname(videoPath));
+//     const coverPath = path.join(outputDir, `${filename}-cover.jpg`);
+
+//     ffmpeg(videoPath)
+//       .on('end', () => {
+//         console.log('封面生成完成:', coverPath);
+//         resolve(coverPath);
+//       })
+//       .on('error', (err) => {
+//         console.error('生成封面失败:', err);
+//         reject(err);
+//       })
+//       .screenshots({
+//         count: 1,             // 截取1帧
+//         folder: outputDir,    // 输出目录
+//         filename: `${filename}-cover.jpg`, // 文件名
+//         size: '360x640'       // 封面尺寸
+//       });
+//   });
+// }
+function getVideoCover(videoPath, outputDir, logoPath) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
     const filename = path.basename(videoPath, path.extname(videoPath));
     const coverPath = path.join(outputDir, `${filename}-cover.jpg`);
-
+    console.log('coverPath:', coverPath);
     ffmpeg(videoPath)
+      .input(logoPath)
+      .complexFilter([
+        // 截取视频第一帧并缩放
+        {
+          filter: 'scale',
+          options: '360:640',
+          inputs: '0:v',
+          outputs: 'scaled'
+        },
+        // 缩放logo（假设你想缩小到50x50）
+        {
+          filter: 'scale',
+          options: '50:50',
+          inputs: '1:v',
+          outputs: 'logo'
+        },
+        // 叠加logo到右下角（留10像素边距）
+        {
+          filter: 'overlay',
+          options: 'main_w-overlay_w-10:main_h-overlay_h-10',
+          inputs: ['scaled', 'logo']
+        }
+      ])
       .on('end', () => {
-        console.log('封面生成完成:', coverPath);
+        console.log('带logo的封面生成完成:', coverPath);
         resolve(coverPath);
       })
       .on('error', (err) => {
         console.error('生成封面失败:', err);
         reject(err);
       })
-      .screenshots({
-        count: 1,             // 截取1帧
-        folder: outputDir,    // 输出目录
-        filename: `${filename}-cover.jpg`, // 文件名
-        size: '360x640'       // 封面尺寸
-      });
+      .outputOptions('-frames:v', '1')  // 只输出一帧
+      .save(coverPath);
   });
 }
- 
 
 // 获取所有已审核的游记
 router.get('/approved', async (req, res) => {
@@ -306,7 +349,8 @@ router.post('/new',  async (req, res) => {
     if(!video_cover){
       const videoPath = path.join(baseDir,'server', video);
       const coverDir = path.join(baseDir, 'server/new/image');
-      let coverPath = await getVideoCover(videoPath, coverDir)
+      const logoPath = path.join(baseDir,'server/new/video/play.png');
+      let coverPath = await getVideoCover(videoPath, coverDir, logoPath);
       video_cover = `/new/image/${path.basename(coverPath)}`;
     }
     console.log(video_cover); // 输出封面路径，用于调试或后续使用
@@ -352,7 +396,123 @@ router.post('/new',  async (req, res) => {
     });
   }
 });
+router.post('/new_edit',  async (req, res) => {
+  try {
+    const { title, content, images = [], video = null, user_id, note_id } = req.body;
+    let { video_cover= null } = req.body; 
+    
+    // 验证数据
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        message: '标题和内容不能为空'
+      });
+    }
+    
+    if (images.length === 0 && !video) {
+      return res.status(400).json({
+        success: false,
+        message: '至少需要上传一张图片或一个视频'
+      });
+    }
+    
+    const baseDir = path.join(__dirname, '../../../');
+    if(!video_cover){
+      const videoPath = path.join(baseDir,'server', video);
+      const coverDir = path.join(baseDir, 'server/new/image');
+      const logoPath = path.join(baseDir,'server/new/video/logo.png');
+      let coverPath = await getVideoCover(videoPath, coverDir, logoPath);
+      video_cover = `/new/image/${path.basename(coverPath)}`;
+    }
+      // 编辑模式
+      const note = await TravelNote.findOne({ where: { note_id } });
+      if (!note) {
+        return res.status(404).json({
+          success: false,
+          message: '游记不存在'
+        });
+      }   
+      // 更新游记基本信息
+      await note.update({
+        title,
+        content,
+        cover_image: video_cover || note.cover_image
+      });
+      
+      // 获取现有图片
+      const existingImages = await image.findAll({ 
+        where: { note_id },
+        attributes: ['url']
+      });
+      const existingUrls = existingImages.map(img => img.url);
+      // 比较图片变化
+      const newUrls = images.filter(url => !existingUrls.includes(url));
+      const removedUrls = existingUrls.filter(url => !images.includes(url));
+      // 添加新图片
+      if (newUrls.length > 0) {
+        const imageRecords = newUrls.map(url => ({
+          note_id,
+          user_id,
+          url
+        }));
+        await image.bulkCreate(imageRecords);
+      }
+      // 删除已移除的图片
+      if (removedUrls.length > 0) {
+        await image.destroy({ 
+          where: { 
+            note_id,
+            url: removedUrls 
+          }
+        });
 
+        for (const url of removedUrls) {
+          const filePath = path.join(baseDir, 'server', url);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
+      }
+      
+      // 处理视频更新
+      if (video) {
+        // 删除旧视频
+        const existingVideo = await image.findOne({
+          where: {
+            note_id,
+            url: { [Op.not]: images }
+          }
+        });
+        
+        if (existingVideo) {
+          await existingVideo.destroy();
+          const filePath = path.join(baseDir, 'server', existingVideo.url);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
+        
+        // 添加新视频
+        await image.create({
+          note_id,
+          user_id,
+          url: video
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: note
+      });
+     
+  } catch (error) {
+    console.error('创建/编辑游记错误:', error);
+    res.status(500).json({ 
+      success: false,
+      message: '创建/编辑游记失败' 
+    });
+  }
+});
 
 // 删除游记
 router.delete('/:note_id', async (req, res) => {

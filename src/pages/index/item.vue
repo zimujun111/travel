@@ -5,7 +5,7 @@
         <view class="travel-item-title">{{ data.title }}</view>
         <view class="travel-item-name">
             <view class="user-info">
-                <image :src="`https://localhost:3000${data.User.avatar_url}`" mode="aspectFill" class="travel-item-avatar" />
+                <image :src="`https://localhost:3000${data.User.avatar_url}`" mode="aspectFill" class="travel-item-avatar"  lazy-load="true" />
             <view class="user-name">{{ data.User.username }}</view>
             </view>
             <view class="see-container">

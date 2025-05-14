@@ -1,4 +1,18 @@
 <template>
+  <view v-if="showAnalysisModal" class="custom-modal-mask">
+    <view class="custom-modal-container">
+      <view class="custom-modal-header">
+        <text class="custom-modal-title">三日安排</text>
+        <text class="custom-modal-close" @tap="closeAnalysisModal">×</text>
+      </view>
+      <scroll-view scroll-y class="custom-modal-content">
+        <text>{{ analysisContent}}</text>
+      </scroll-view>
+      <view class="custom-modal-footer">
+        <text class="custom-modal-confirm" @tap="copyAnalysisContent">复制内容</text>
+      </view>
+    </view>
+  </view>
     <view class="detail-container">
       <view class="media-container">
         <!-- 图片轮播 -->
@@ -128,10 +142,14 @@
                 <image src="../../assets/images/share.png" class="action-icon" />
                 <text>分享</text>
             </view>
+            
           
         </view>
       </view>
-
+      <view class="ai-analysis" @tap="handleAIAnalysis">
+          <text>AI分析</text>
+      </view>
+      
       <!-- 评论 -->
       <view class="comment-input" v-if="showInput">
         <input 
@@ -156,7 +174,12 @@
   import { useTravelStore } from '../../stores/travelStores'
   import {computed} from 'vue'
   import { formatRelativeTime } from '../../utils/date'
+  import { eventSource } from '../../utils/sse'
+  import CustomModal from '../../components/popup/index.vue'
   export default {
+    components: {
+      CustomModal
+    },
   setup() {    
     const currentMediaIndex = ref(0)
     const swiperHeight = ref(0)
@@ -165,6 +188,7 @@
     const showInput = ref(false)
     const commentText = ref('')
     const imageStyles = ref([]);
+    const showAnalysisModal = ref(false)
     const post = ref({
       media: [], // 确保初始化为数组
       title: '',
@@ -179,7 +203,8 @@
     const fetchNotes = async () => {
       await travelStore.fetchNotes(currentPage.value, pageSize.value)
     }
-    
+    const analysisContent = ref('') // 存储流式内容
+    const sseRequestTask = ref(null)
     
     
     const fetchNoteImages = async (noteId) => {
@@ -362,6 +387,58 @@
             console.error('分享错误:', error)
         }
     }
+    
+    const handleAIAnalysis = () => {
+      analysisContent.value = '' // 清空之前的内容
+      showAnalysisModal.value = true
+      Taro.showLoading({ title: 'AI分析中...' })
+      // 发起SSE请求
+      sseRequestTask.value = eventSource({
+        url: 'https://localhost:3000/api/deepseek',
+        data: { content: post.value.content },
+        onmessage: (chunk) => {
+          Taro.hideLoading()
+          const contents = [];
+          let match
+          const regex = /"content":"(.*?)"/g;
+          while ((match = regex.exec(chunk)) !== null) {
+            contents.push(match[1]);
+          }
+          let deal_content = contents.join('')
+          deal_content = deal_content.replace(/\\n/g, '\n');
+          analysisContent.value += deal_content
+          
+        },
+        onerror: (err) => {
+          Taro.hideLoading()
+          Taro.showToast({
+            title: '分析失败: ' + (err.errMsg || '未知错误'),
+            icon: 'none'
+          })
+          console.error('SSE错误:', err)
+        }
+      })
+    }
+    const stopAIAnalysis = () => {
+      if (sseRequestTask.value) {
+        sseRequestTask.value.abort()
+        sseRequestTask.value = null
+        Taro.showToast({ title: '已停止分析', icon: 'none' })
+      }
+    }
+  const closeAnalysisModal = () => {
+    showAnalysisModal.value = false
+    if (sseRequestTask.value) {
+      sseRequestTask.value.abort()
+      sseRequestTask.value = null
+    }
+  }
+  const copyAnalysisContent = () => {
+      Taro.setClipboardData({
+        data: analysisContent.value,
+        success: () => Taro.showToast({ title: '已复制到剪贴板' })
+      })
+    }
 
     const handleVideoError = (e, url) => {
       console.error('视频加载错误:', e, 'URL:', url);
@@ -420,7 +497,12 @@
       imageStyles,
       showDebug,
       handleVideoError,
-      previewVideo
+      previewVideo,
+      handleAIAnalysis,
+      showAnalysisModal,
+      analysisContent,
+      closeAnalysisModal,
+      copyAnalysisContent
     }
   }
 }
@@ -666,6 +748,29 @@
     font-size: 24rpx;
     color: #666;
   }
+  .ai-analysis {
+    position: fixed;
+    right: 30rpx;
+    bottom: 150rpx;
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 30rpx;
+    font-weight: bold;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+    z-index: 99;
+    transition: all 0.3s ease;
+  }
+
+  .ai-analysis:active {
+    transform: scale(0.95);
+    box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.2);
+  }
 
   .debug-info text {
     display: block;
@@ -694,4 +799,22 @@
   .fullscreen-video::-webkit-media-controls {
     z-index: 2;
   }
+  .ai-stop {
+    position: fixed;
+    right: 30rpx;
+    bottom: 300rpx;
+    width: 120rpx;
+    height: 60rpx;
+    border-radius: 30rpx;
+    background: linear-gradient(135deg, #ff5e62, #ff9966);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 26rpx;
+    font-weight: bold;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+    z-index: 99;
+  }
   </style>
+  <style src="./index.css"></style>

@@ -92,6 +92,7 @@ export default defineComponent({
     const previewIndex = ref(0)
     const isPublished = ref(false) // 新增状态标记是否已经发布
     const userData = Taro.getStorageSync('userinfo')
+    const item = ref(null) // 新增的 item 变量，用于存储编辑的游记数据
     
     const isAllRequiredFilled = () => {
       return title.value.trim() && content.value.trim()
@@ -170,143 +171,184 @@ export default defineComponent({
         }
       })
     }
-    const upload_image_video= async () => {
+    const upload_image_video = async () => {
       const uploadedMedia = {
-        images: [],
+        images: [], // 这里存储最终要提交给后端的图片路径数组
         video: null,
         videoCover: null
       }
-      
-      try {
-        
-        // 上传图片
-        if (images.value.length > 0) {
+
+  try {
+    // 上传图片
+    if (images.value.length > 0) {
+      const imageUploads = images.value.map(async (filePath) => {
+        console.log(filePath)
+        if (filePath.startsWith('https://localhost')) {
+          // 提取相对路径部分（去掉域名）
+          const url = new URL(filePath);
+          console.log(1)
+          return url.pathname + (url.search || '') + (url.hash || '');
           
-          const imageUploads = images.value.map(filePath => 
-            Taro.uploadFile({
-              url: 'https://localhost:3000/api/travel-notes/upload-images',
-              filePath: filePath,
-              name: 'images',
-              
-            }).catch(err => {
-              console.error('图片上传失败:', filePath, err)
-              throw err
-            })
-          )
-          
-          const imageResults = await Promise.all(imageUploads)
-          
-          uploadedMedia.images = imageResults.map(res => {
-            try {
-              return JSON.parse(res.data).data
-            } catch (parseError) {
-              console.error('解析图片上传响应失败:', res.data, parseError)
-              throw parseError
-            }
-          })
-          
-          if (uploadedMedia.images.length > 0) {
-            uploadedMedia.videoCover = uploadedMedia.images[0][0].path
-            
-          }
-        }
-        
-        // 上传视频
-        if (video.value) {
-          const videoRes = await Taro.uploadFile({
-            url: 'https://localhost:3000/api/travel-notes/upload-video',
-            filePath: video.value,
-            name: 'video',
+        } else {
+          console.log(filePath)
+          const uploadRes = await Taro.uploadFile({
+            url: 'https://localhost:3000/api/travel-notes/upload-images',
+            filePath: filePath,
+            name: 'images',
           }).catch(err => {
-            console.error('视频上传失败:', video.value, err)
-            throw err
-          })
-          console.log(videoRes)
+            console.error('图片上传失败:', filePath, err);
+            throw err;
+          });
+          
           try {
-            const videoData = JSON.parse(videoRes.data).data
-            uploadedMedia.video = videoData.path
-            
-            if (uploadedMedia.images.length === 0) {
-              uploadedMedia.videoCover = false
-            }
+            const data = JSON.parse(uploadRes.data);
+            return data.data[0]?.path || data.data?.path || data.path;
           } catch (parseError) {
-            console.error('解析视频上传响应失败:', videoRes.data, parseError)
-            throw parseError
+            console.error('解析图片上传响应失败:', uploadRes.data, parseError);
+            throw parseError;
           }
         }
+      });
+
+      uploadedMedia.images = await Promise.all(imageUploads);
+      
+      // 设置封面（取第一张图片）
+      if (uploadedMedia.images.length > 0) {
+        uploadedMedia.videoCover = uploadedMedia.images[0];
+      }
+    }
+
+    // 上传视频（如果有）
+    if (video.value) {
+      // 如果是网络视频（已存在的视频），直接返回路径
+      if (video.value.startsWith('https://localhost')) {
+        const url = new URL(video.value);
+        uploadedMedia.video = url.pathname + (url.search || '') + (url.hash || '');
         
-        return uploadedMedia
-      } catch (error) {
-        console.error('上传失败:', {
-          error,
-          images: images.value,
-          video: video.value,
-          videoCover: videoCover.value
-        })
-        throw error
-      }
-    }
-    const submit = async () => {
-      if (!title.value.trim()) {
-        return Taro.showToast({ title: '请输入标题', icon: 'none' })
-      }
-      if (!content.value.trim()) {
-        return Taro.showToast({ title: '请输入内容', icon: 'none' })
-      }
-      if (images.value.length === 0 && !video.value) {
-        return Taro.showToast({ title: '请上传图片或视频', icon: 'none' })
-      }
-      
-      const uploadedMedia = await upload_image_video()
-      console.log('上传的媒体文件:', uploadedMedia.images)
-      const submitRes = await Taro.request({
-        url: 'https://localhost:3000/api/travel-notes/new',
-        method: 'POST',
-        data: {
-          user_id:userData.user_id,
-          title: title.value,
-          content: content.value,
-          images: uploadedMedia.images.map(img => img[0].path),
-          video: uploadedMedia.video,
-          video_cover: uploadedMedia.videoCover
+        // 如果是网络视频封面，也直接返回路径
+        if (videoCover.value.startsWith('https://localhost')) {
+          const coverUrl = new URL(videoCover.value);
+          uploadedMedia.videoCover = coverUrl.pathname + (coverUrl.search || '') + (coverUrl.hash || '');
         }
-      })
-      isPublished.value = true // 标记为已发布
-      Taro.showLoading({ title: '保存中...' })
-      
-      // 获取路由参数判断是否为编辑模式
-      const router = Taro.getCurrentInstance()?.router
-      const isEditMode = router?.params?.item ? true : false
-      
-      setTimeout(() => {
-        Taro.hideLoading()
+      } else {
+        // 新视频需要上传
+        const videoRes = await Taro.uploadFile({
+          url: 'https://localhost:3000/api/travel-notes/upload-video',
+          filePath: video.value,
+          name: 'video',
+        }).catch(err => {
+          console.error('视频上传失败:', video.value, err);
+          throw err;
+        });
 
-        Taro.showToast({ 
-          title: isEditMode ? '保存成功' : '发布成功', 
-          icon: 'success',
-          duration: 1500,
-          success: () => {
-            setTimeout(() => {
-              clearDraft()
-              Taro.navigateBack({
-                delta: 1,
-                success: () => {
-                  console.log('返回成功');
-                },
-                fail: (err) => {
-                  console.error('返回失败:', err);
-                  // 如果返回失败，尝试使用switchTab
-                  Taro.switchTab({
-                    url: '/pages/myTravel/index'
-                  });
-                }
-              });
-            }, 500);
-          }
-
-        })
-      }, 1000)
+        try {
+          const data = JSON.parse(videoRes.data);
+          uploadedMedia.video = data.data?.path || data.path;
+           
+        } catch (parseError) {
+          console.error('解析视频上传响应失败:', videoRes.data, parseError);
+          throw parseError;
+        }
+          
+         
+      }
     }
+
+    return uploadedMedia;
+  } catch (error) {
+    console.error('上传失败:', {
+      error,
+      images: images.value,
+      video: video.value,
+      videoCover: videoCover.value
+    });
+    throw error;
+  }
+}
+const submit = async () => {
+  // 获取路由参数判断是否为编辑模式
+  const router = Taro.getCurrentInstance()?.router;
+  const isEditMode = router?.params?.item ? true : false;
+  
+  if (!title.value.trim()) {
+    return Taro.showToast({ title: '请输入标题', icon: 'none' });
+  }
+  if (!content.value.trim()) {
+    return Taro.showToast({ title: '请输入内容', icon: 'none' });
+  }
+  if (images.value.length === 0 && !video.value) {
+    return Taro.showToast({ title: '请上传图片或视频', icon: 'none' });
+  }
+  
+  Taro.showLoading({ title: '处理中...' });
+  
+  try {
+    const uploadedMedia = await upload_image_video();
+    console.log('上传的媒体文件:', uploadedMedia);
+    
+    // 准备提交数据
+    const submitData = isEditMode 
+    ?{
+      user_id: userData.user_id,
+      title: title.value,
+      content: content.value,
+      images: uploadedMedia.images,
+      video: uploadedMedia.video,
+      video_cover: uploadedMedia.videoCover,
+      note_id:item.value.note_id
+
+    }: {
+      user_id: userData.user_id,
+      title: title.value,
+      content: content.value,
+      images: uploadedMedia.images,
+      video: uploadedMedia.video,
+      video_cover: uploadedMedia.videoCover
+    }
+    ;
+    
+    // 根据编辑/发布模式选择不同API
+    const apiUrl = isEditMode 
+      ? 'https://localhost:3000/api/travel-notes/new_edit' 
+      : 'https://localhost:3000/api/travel-notes/new';
+    
+    const submitRes = await Taro.request({
+      url: apiUrl,
+      method: 'POST',
+      data: submitData
+    });
+    
+    isPublished.value = true;
+    Taro.hideLoading();
+    
+    Taro.showToast({ 
+      title: isEditMode ? '保存成功' : '发布成功', 
+      icon: 'success',
+      duration: 1500,
+      success: () => {
+        setTimeout(() => {
+          clearDraft();
+          Taro.navigateBack({
+            delta: 1,
+            success: () => console.log('返回成功'),
+            fail: (err) => {
+              console.error('返回失败:', err);
+              Taro.switchTab({ url: '/pages/myTravel/index' });
+            }
+          });
+        }, 500);
+      }
+    });
+  } catch (error) {
+    Taro.hideLoading();
+    Taro.showToast({
+      title: error.message || '操作失败',
+      icon: 'none',
+      duration: 3000
+    });
+    console.error('提交失败:', error);
+  }
+};
 
     const saveDraft = () => {
       Taro.setStorageSync('travel_draft', {
@@ -354,17 +396,26 @@ export default defineComponent({
       const router = Taro.getCurrentInstance()?.router
       if (router && router.params && router.params.item) {
         try {
-          const item = JSON.parse(decodeURIComponent(router.params.item))
-          title.value = item.title || ''
-          content.value = item.content || ''
+          item.value = JSON.parse(decodeURIComponent(router.params.item))
+          title.value = item.value.title || ''
+          content.value = item.value.content || ''
           //有bug
-          if (item.images) {
-            
-              images.value = item.images.map(img => `https://localhost:3000${img.url}`)
+          if (item.value.images.length==1) {
+            const firstMedia = item.value.images[0].url;
+            const isVideo = /\.(mp4|mov|avi|mkv|webm|flv)$/i.test(firstMedia);
 
+            if (isVideo) {
+             // 单视频：设置视频和封面
+              video.value = `https://localhost:3000${firstMedia}`;
+              videoCover.value = item.value.cover_image 
+                ? `https://localhost:3000${item.value.cover_image}` 
+                : ''; // 如果没有封面，后续可以用默认图
+            } else {
+              images.value = item.value.images[0].url
+            }
+          }else if(item.value.images){
+            images.value = item.value.images.map(img => `https://localhost:3000${img.url}`)
           }
-          
-        
            
           // 设置页面标题为编辑模式
           Taro.setNavigationBarTitle({

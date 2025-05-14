@@ -97,10 +97,7 @@ export default {
     const fetchMyNotes = () => {
       myTravelStore.fetchMyNotes()
     }
-    onMounted(() => {
-        fetchMyNotes()
-    })
-
+  
     const tomytravel = () => {
       Taro.navigateTo({
         url: '/pages/myTravel/index'
@@ -127,10 +124,11 @@ export default {
     }
     Taro.useDidShow(() => {
       getUserInfo()
-      
+      fetchMyNotes() 
     })
     onMounted(() => {
       getUserInfo()
+      fetchMyNotes()
     })
     const uploadAvatar = () => {
       if (!isLogin.value) {

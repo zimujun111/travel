@@ -24,7 +24,7 @@
                   <view class="card-content">
                     <!-- 左侧图片 -->
                     <view class="card-image-container">
-                      <image :src="`https://localhost:3000${item.cover_image}`" mode="aspectFill" class="card-image"></image>
+                      <image :src="`https://localhost:3000${item.cover_image}`" mode="aspectFill" class="card-image"  lazy-load="true"></image>
                     </view>
                     
                     <!-- 右侧内容 -->
@@ -59,6 +59,7 @@
                     <button 
                       class="action-btn edit-btn" 
                       @tap="handleEdit(item)"
+                      v-if="item.status==='pending' || item.status==='rejected'"
                     >
                       <text class="btn-text">编辑</text>
                     </button>
@@ -87,7 +88,9 @@ const list = computed(() =>myTravelStore.myTravellist)
 const fetchMyNotes = () => {
   myTravelStore.fetchMyNotes()
 }
-
+Taro.useDidShow(() => {
+  fetchMyNotes()
+})
 onMounted(() => {
     fetchMyNotes()
 })
