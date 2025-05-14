@@ -161,11 +161,48 @@ export default defineComponent({
     const chooseImages = () => {
       Taro.chooseImage({
         count: 9 - images.value.length,
-        success: res => {
-          images.value.push(...res.tempFilePaths)
+        success: async res => {
+          Taro.showLoading({
+            title: '压缩中...',
+            mask: true
+          })
+          
+          try {
+            // 使用 Promise.all 并行处理所有图片压缩
+            const compressedImages = await Promise.all(
+              res.tempFilePaths.map(async (filePath) => {
+                const compressRes = await Taro.compressImage({
+                  src: filePath,
+                  quality: 80, // 压缩质量，范围 0-100
+                  compressedWidth: 1080, // 压缩后的宽度，单位 px
+                })
+                return compressRes.tempFilePath
+              })
+            )
+            
+            images.value.push(...compressedImages)
+            
+            Taro.hideLoading()
+            Taro.showToast({
+              title: '压缩完成',
+              icon: 'success',
+              duration: 1500
+            })
+          } catch (error) {
+            console.error('图片压缩失败:', error)
+            Taro.hideLoading()
+            Taro.showToast({
+              title: '压缩失败，使用原图',
+              icon: 'none',
+              duration: 2000
+            })
+            // 如果压缩失败，使用原图
+            images.value.push(...res.tempFilePaths)
+          }
         }
       })
     }
+// ... existing code ...
 
     const chooseVideo = () => {
       Taro.chooseVideo({
@@ -321,6 +358,14 @@ export default defineComponent({
         return Taro.showToast({ title: '请上传图片或视频', icon: 'none' })
       }
       
+      // 添加防爬虫请求头
+      const headers = {
+        'X-Client-Version': '1.0.0',
+        'X-Platform': 'h5',
+        'X-Request-Time': Date.now().toString(),
+        'X-Client-Type': 'browser'
+      };
+      
       const uploadedMedia = await upload_image_video()
       console.log('上传的媒体文件:', uploadedMedia.images)
       const submitRes = await Taro.request({
@@ -334,7 +379,8 @@ export default defineComponent({
           video: uploadedMedia.video,
           video_cover: uploadedMedia.videoCover,
           selectedTopics: selectedTopics.value,
-        }
+        },
+        header: headers
       })
       isPublished.value = true // 标记为已发布
       Taro.showLoading({ title: '保存中...' })
@@ -504,7 +550,30 @@ export default defineComponent({
       showRule.value = true
     }
 
+    const checkLogin = () => {
+      const userData = Taro.getStorageSync('userinfo')
+      if (!userData || !userData.token) {
+        Taro.showToast({
+          title: '请先登录',
+          icon: 'none',
+          duration: 2000,
+          success: () => {
+            setTimeout(() => {
+              Taro.switchTab({
+                url: '/pages/my/index'
+              })
+            }, 2000)
+          }
+        })
+        return false
+      }
+      return true
+    }
+
     onMounted(() => {
+      if (!checkLogin()) {
+        return
+      }
       // 解析 url 参数，填充编辑内容
       const router = Taro.getCurrentInstance()?.router
       if (router && router.params && router.params.item) {
