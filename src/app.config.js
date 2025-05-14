@@ -15,6 +15,7 @@ export default {
     navigationBarTitleText: 'Taro Vue Demo',
     navigationBarTextStyle: 'black'
   },
+  
   tabBar: {
     color: '#999',
     custom: true,
